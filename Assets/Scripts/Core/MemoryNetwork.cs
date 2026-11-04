@@ -17,14 +17,21 @@ namespace DontForgetMe
 
         public void Recognize(string observer, string subject)
         {
+            SetStrength(observer, subject, 1f);
+        }
+
+        internal void SetStrength(string observer, string subject, float strength)
+        {
             ValidatePair(observer, subject);
+            if (float.IsNaN(strength) || float.IsInfinity(strength) || strength < 0 || strength > 1)
+                throw new ArgumentOutOfRangeException(nameof(strength));
             Link link = Find(observer, subject);
             if (link == null)
             {
                 link = new Link { Observer = observer, Subject = subject };
                 links.Add(link);
             }
-            link.Strength = 1f;
+            link.Strength = strength;
         }
 
         public float Strength(string observer, string subject)

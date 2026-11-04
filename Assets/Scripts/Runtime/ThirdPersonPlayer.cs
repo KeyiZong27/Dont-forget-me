@@ -7,7 +7,9 @@ namespace DontForgetMe
         public float Stamina { get; private set; } = 100f;
         public float Health { get; private set; } = 100f;
         public float Energy { get; private set; } = 100f;
+        public float EnergyDrainPerSecond { get; private set; }
         public float Heading { get; private set; }
+        public Transform Model => model;
 
         private CharacterController controller;
         private Transform model;
@@ -33,9 +35,8 @@ namespace DontForgetMe
 
         private void Update()
         {
-            DemoGame game = DemoGame.Instance;
-            if (game == null || game.IsPaused || game.IsFailed || game.State.Phase == OpeningPhase.Complete)
-                return;
+            IPlayerWorld game = PlayerWorld.Current;
+            if (!PlayerWorld.CanSimulate) return;
 
             if (Cursor.lockState == CursorLockMode.Locked)
             {
@@ -48,7 +49,8 @@ namespace DontForgetMe
             Vector3 direction = Quaternion.Euler(0, yaw, 0) * Vector3.ClampMagnitude(new Vector3(x, 0, z), 1f);
             bool running = Input.GetKey(KeyCode.LeftShift) && Stamina > 5f && direction.sqrMagnitude > 0;
             Stamina = Mathf.Clamp(Stamina + (running ? -19f : 14f) * Time.deltaTime, 0, 100);
-            Energy = Mathf.Max(0, Energy - Time.deltaTime * (running ? 0.08f : 0.025f));
+            EnergyDrainPerSecond = (running ? 0.08f : 0.025f) + game.ThreatEnergyDrainPerSecond;
+            Energy = Mathf.Max(0, Energy - Time.deltaTime * EnergyDrainPerSecond);
             fallSpeed = controller.isGrounded ? -2f : fallSpeed - 20f * Time.deltaTime;
             controller.Move((direction * (running ? 5.2f : 3.2f) + Vector3.up * fallSpeed) * Time.deltaTime);
             if (direction.sqrMagnitude > 0.01f)
@@ -72,7 +74,7 @@ namespace DontForgetMe
 
         private void LateUpdate()
         {
-            if (view != null) UpdateCamera(false);
+            if (view != null && PlayerWorld.CanSimulate) UpdateCamera(false);
         }
 
         private void UpdateCamera(bool immediate)
@@ -94,8 +96,37 @@ namespace DontForgetMe
             if (hitCooldown > 0) return;
             Health = Mathf.Max(0, Health - 12);
             hitCooldown = 1.7f;
-            DemoGame.Instance.Caption("他扑了过来。拉开距离，或者按 F 推开；不需要杀死他。", 3);
-            if (Health <= 0) DemoGame.Instance.Fail();
+            PlayerWorld.Current.Caption("他扑了过来。拉开距离，或者按 F 推开；不需要杀死他。", 3);
+            if (Health <= 0) PlayerWorld.Current.Fail();
+        }
+
+        public bool SpendStamina(float amount)
+        {
+            if (float.IsNaN(amount) || float.IsInfinity(amount) || amount <= 0)
+                throw new System.ArgumentOutOfRangeException(nameof(amount));
+            if (Stamina < amount) return false;
+            Stamina -= amount;
+            return true;
+        }
+
+        public void Respawn(Vector3 position)
+        {
+            controller.enabled = false;
+            transform.position = position;
+            controller.enabled = true;
+            fallSpeed = 0;
+            hitCooldown = 0;
+            pushCooldown = 0;
+            Health = Stamina = Energy = 100f;
+            UpdateCamera(true);
+        }
+
+        // 一夜睡眠：恢复精力与体力；轻伤有所缓解，但不保证满血。
+        public void Rest()
+        {
+            Energy = 100f;
+            Stamina = 100f;
+            Health = Mathf.Max(Health, 80f);
         }
     }
 }

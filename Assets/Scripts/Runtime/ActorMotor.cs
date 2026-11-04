@@ -8,12 +8,22 @@ namespace DontForgetMe
     {
         public string DisplayName { get; set; }
         public string Identity { get; set; }
-        public Transform FollowTarget { get; set; }
         public Vector3 FollowOffset { get; set; }
         public float Speed { get; set; } = 3.2f;
         public bool HasDestination { get; private set; }
         public Vector3 Destination { get; private set; }
 
+        public Transform FollowTarget
+        {
+            get { return followTarget; }
+            set
+            {
+                followTarget = value;
+                if (value != null) stopped = false;
+            }
+        }
+
+        private Transform followTarget;
         private CharacterController controller;
         private float verticalSpeed;
         private bool stopped;
@@ -65,8 +75,7 @@ namespace DontForgetMe
 
         private void Update()
         {
-            if (controller == null || DemoGame.Instance == null || DemoGame.Instance.IsPaused
-                || DemoGame.Instance.IsFailed || DemoGame.Instance.State.Phase == OpeningPhase.Complete) return;
+            if (controller == null || !PlayerWorld.CanSimulate) return;
             Vector3 direction = Vector3.zero;
             if (!stopped)
             {
