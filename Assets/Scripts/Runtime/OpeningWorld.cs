@@ -928,5 +928,72 @@ namespace DontForgetMe
             game.AddInteraction(game.Zhou.gameObject, "确认大家都跟上了",
                 () => game.State.Phase == OpeningPhase.Regroup, game.Finish);
         }
+
+        private static void BuildStreetDetails(DemoGame game)
+        {
+            Color fadedPaint = new Color(0.58f, 0.56f, 0.49f);
+            Color rust = new Color(0.43f, 0.29f, 0.22f);
+            Color mutedGreen = new Color(0.34f, 0.4f, 0.35f);
+
+            Box("WestCurb", new Vector3(-9.45f, 0.06f, 12), new Vector3(1.7f, 0.12f, 32),
+                new Color(0.42f, 0.41f, 0.38f), null, false);
+            Box("EastCurb", new Vector3(9.45f, 0.06f, 12), new Vector3(1.7f, 0.12f, 32),
+                new Color(0.42f, 0.41f, 0.38f), null, false);
+
+            for (int i = 0; i < 5; i++)
+            {
+                float x = -4.8f + i * 2.4f;
+                Box("WornCrosswalk", new Vector3(x, 0.015f, 27.1f), new Vector3(1.2f, 0.025f, 0.45f),
+                    fadedPaint, null, false);
+            }
+
+            Box("WorkshopSign", new Vector3(-10.22f, 4.3f, 15), new Vector3(0.22f, 0.9f, 3.3f),
+                new Color(0.43f, 0.36f, 0.27f), null, false);
+            Box("WorkshopAwning", new Vector3(-9.65f, 2.95f, 15), new Vector3(1.2f, 0.18f, 4.6f),
+                new Color(0.48f, 0.31f, 0.24f), null, false);
+            for (int i = 0; i < 4; i++)
+                Box("AwningStripe", new Vector3(-9.62f, 2.84f, 13.15f + i * 1.23f),
+                    new Vector3(1.17f, 0.04f, 0.08f), fadedPaint, null, false);
+
+            Box("ToolCrateA", new Vector3(-9.15f, 0.42f, 18.5f), new Vector3(0.85f, 0.8f, 0.85f),
+                mutedGreen, null, false);
+            Box("ToolCrateB", new Vector3(-8.75f, 0.38f, 19.25f), new Vector3(0.72f, 0.72f, 0.7f),
+                Warm * 0.72f, null, false);
+            Box("CrateBrace", new Vector3(-9.15f, 0.43f, 18.5f), new Vector3(0.88f, 0.08f, 0.08f),
+                rust, null, false);
+
+            Shape(PrimitiveType.Cylinder, "StreetDrain", new Vector3(7.5f, 0.025f, 24),
+                new Vector3(0.85f, 0.025f, 0.85f), MetalColor(), null);
+            for (int i = 0; i < 3; i++)
+                Box("DrainSlot", new Vector3(7.5f, 0.06f, 23.65f + i * 0.34f),
+                    new Vector3(0.56f, 0.015f, 0.05f), Stone, null, false);
+
+            Box("LampPost", new Vector3(8.65f, 2.55f, 8), new Vector3(0.14f, 5.1f, 0.14f),
+                MetalColor(), null, false);
+            Box("LampArm", new Vector3(8.25f, 4.9f, 8), new Vector3(0.85f, 0.1f, 0.12f),
+                MetalColor(), null, false);
+            GameObject lamp = Shape(PrimitiveType.Sphere, "StreetLampHead", new Vector3(7.87f, 4.83f, 8),
+                new Vector3(0.32f, 0.16f, 0.26f), new Color(0.79f, 0.68f, 0.44f), null);
+            game.StreetLamp = lamp.AddComponent<Light>();
+            game.StreetLamp.type = LightType.Point;
+            game.StreetLamp.color = new Color(1f, 0.72f, 0.42f);
+            game.StreetLamp.range = 9f;
+            game.StreetLamp.intensity = 0.7f;
+            game.StreetLamp.enabled = false;
+
+            Box("AlleyCable", new Vector3(0, 4.25f, 39), new Vector3(5.5f, 0.045f, 0.045f),
+                new Color(0.12f, 0.13f, 0.13f), null, false);
+            Box("AlleyCable", new Vector3(0, 4.05f, 50), new Vector3(5.5f, 0.045f, 0.045f),
+                new Color(0.12f, 0.13f, 0.13f), null, false);
+            Box("CourtyardWayfinding", new Vector3(8.3f, 1.7f, 65), new Vector3(0.16f, 1.1f, 2.4f),
+                mutedGreen, null, false);
+            Box("WayfindingArrow", new Vector3(8.18f, 1.7f, 64.5f), new Vector3(0.04f, 0.12f, 0.55f),
+                fadedPaint, null, false);
+        }
+
+        private static Color MetalColor()
+        {
+            return new Color(0.34f, 0.37f, 0.38f);
+        }
     }
 }

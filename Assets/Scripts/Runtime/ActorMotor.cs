@@ -8,7 +8,6 @@ namespace DontForgetMe
     {
         public string DisplayName { get; set; }
         public string Identity { get; set; }
-        public Transform FollowTarget { get; set; }
         public Vector3 FollowOffset { get; set; }
         public float Speed { get; set; } = 3.2f;
         public bool HasDestination { get; private set; }
@@ -19,6 +18,17 @@ namespace DontForgetMe
         public Vector3? Facing { get; set; }
         public float PlanarSpeed => new Vector2(velocity.x, velocity.z).magnitude;
 
+        public Transform FollowTarget
+        {
+            get { return followTarget; }
+            set
+            {
+                followTarget = value;
+                if (value != null) stopped = false;
+            }
+        }
+
+        private Transform followTarget;
         private CharacterController controller;
         private float verticalSpeed;
         private bool stopped;

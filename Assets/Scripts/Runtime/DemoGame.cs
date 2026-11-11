@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 
 namespace DontForgetMe
 {
-    public sealed class DemoGame : MonoBehaviour
+    public sealed class DemoGame : MonoBehaviour, IPlayerWorld
     {
         public static readonly Vector3 GateClosed = new Vector3(0, 1.35f, 48.3f);
         public static readonly Vector3 GateOpen = new Vector3(-2.85f, 1.35f, 48.3f);
@@ -16,6 +16,7 @@ namespace DontForgetMe
 
         public static DemoGame Instance { get; private set; }
         public OpeningState State { get; private set; }
+        public JourneyState Journey { get; private set; }
         public MemoryNetwork Memories { get; private set; }
         public ThirdPersonPlayer Player { get; set; }
         public Camera View { get; set; }
@@ -26,9 +27,20 @@ namespace DontForgetMe
         public ActorMotor ResidentB { get; set; }
         public GameObject Gate { get; set; }
         public GameObject Water { get; set; }
+        public GameObject NorthWall { get; set; }
+        public GameObject NorthGate { get; set; }
+        public GameObject ShelterDoor { get; set; }
+        public GameObject ShelterExit { get; set; }
+        public Light Sun { get; set; }
+        public Light StreetLamp { get; set; }
+        public Light ShelterLamp { get; set; }
         public bool IsPaused => !started || paused;
         public bool HasStarted => started;
         public bool IsFailed { get; private set; }
+        public bool IsComplete => Journey.Phase == JourneyPhase.Complete;
+        public bool PathSceneStarted => pathSceneStarted;
+        public bool DoorSlammed => doorSlammed;
+        public bool FarewellStarted => farewellStarted;
         public Interactable Nearest { get; private set; }
         public string CurrentCaption { get; private set; }
         public float StartedAt { get; private set; }
@@ -40,6 +52,7 @@ namespace DontForgetMe
         private bool paused;
         private float captionUntil;
         private float threatStunUntil;
+        private float threatMovesAt;
         private float nextBark;
         private ActorMotor threat;
         private AudioSource sound;
@@ -53,8 +66,7 @@ namespace DontForgetMe
         private bool gateClosed;
         private Vector3 gateTarget = GateClosed;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void Bootstrap()
+        private static void Bootstrap(Scene scene, LoadSceneMode mode)
         {
             // Restarting reloads the scene, which destroys the game object; build it again each time.
             SceneManager.sceneLoaded -= OnSceneLoaded;
@@ -76,7 +88,9 @@ namespace DontForgetMe
         private void Awake()
         {
             Instance = this;
+            PlayerWorld.Current = this;
             State = new OpeningState();
+            Journey = new JourneyState();
             Memories = new MemoryNetwork();
             Physics.IgnoreLayerCollision(8, 8, true);
             OpeningWorld.Build(this);
@@ -103,7 +117,7 @@ namespace DontForgetMe
 
         public void TogglePause()
         {
-            if (!started || IsFailed || State.Phase == OpeningPhase.Complete) return;
+            if (!started || IsFailed || IsComplete) return;
             paused = !paused;
             Time.timeScale = paused ? 0 : 1;
             SetCursor(!paused);
@@ -141,6 +155,7 @@ namespace DontForgetMe
             {
                 UpdateThreat();
             }
+            if (State.Phase == OpeningPhase.Complete) UpdateJourney();
         }
 
         private void UpdateMood()
@@ -360,6 +375,11 @@ namespace DontForgetMe
         private void UpdateThreat()
         {
             if (threat == null || gateClosed) return;
+            if (Time.time < threatMovesAt)
+            {
+                threat.Stop();
+                return;
+            }
             if (Time.time < threatStunUntil)
             {
                 threat.Stop();
@@ -483,6 +503,7 @@ namespace DontForgetMe
         {
             get
             {
+                if (State.Phase == OpeningPhase.Complete) return JourneyObjective;
                 switch (State.Phase)
                 {
                     case OpeningPhase.Street: return "经过街边修理铺，和修椅子的人说说话。\n也可以先到水碗旁照顾狗。";
@@ -492,8 +513,40 @@ namespace DontForgetMe
                         ? "到铁门旁与老周合作，开始修门。"
                         : "搬开铁门前的两件杂物。";
                     case OpeningPhase.Repair: return "撑到铁门修好。不要求击杀；F 推开靠近的威胁。";
-                    case OpeningPhase.Regroup: return "穿过铁门，到老周身边确认大家都在。";
-                    default: return "这一段路，我们一起走出来了。";
+                    default: return "穿过铁门，到老周身边确认大家都在。";
+                }
+            }
+        }
+
+        private string JourneyObjective
+        {
+            get
+            {
+                switch (Journey.Phase)
+                {
+                    case JourneyPhase.Calls:
+                        if (Journey.BothCallsDone) return "北面的闸板升起来了。穿过缺口，沿窄路往服务区走。";
+                        if (Journey.CalledFamily) return "再陪她给母亲打一通电话。";
+                        if (Journey.CalledMother) return "再陪老周给家里打一通电话。";
+                        return "空地暂时安静。分别陪老周和她打完两通电话。";
+                    case JourneyPhase.Path:
+                        if (!pathSceneStarted) return "跟着老周，沿窄路往服务区方向走。";
+                        if (!Journey.DogCalmed) return "豆子抬起了前爪。蹲下来，先让它闻闻你的手。";
+                        if (!Journey.GlassRemoved) return "把它爪垫里的碎玻璃挑出来。没有倒计时。";
+                        return "跟着老周，进入前面的服务区附属房。";
+                    case JourneyPhase.Shelter:
+                        return Journey.ZhouPersuaded
+                            ? "到西侧铺位旁，招呼大家休息。"
+                            : "老周想连夜赶路。劝他留下来。";
+                    case JourneyPhase.Night:
+                        if (!doorSlammed) return "夜里轮换看门。先休息。";
+                        return Journey.DoorFixed
+                            ? "回铺位睡到天亮。"
+                            : "门被风撞响了。和老周一起调整闭门器。";
+                    case JourneyPhase.Morning:
+                        return Journey.AddressCopied ? "和老周道别。" : "到桌边，把柳河中转站的地址抄进路线册。";
+                    default:
+                        return "分路不是散伙。到了柳河，留句话。";
                 }
             }
         }
@@ -502,6 +555,7 @@ namespace DontForgetMe
         {
             get
             {
+                if (State.Phase == OpeningPhase.Complete) return JourneyObjectivePosition;
                 switch (State.Phase)
                 {
                     case OpeningPhase.Street: return Zhou.transform.position;

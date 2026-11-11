@@ -354,6 +354,24 @@ namespace DontForgetMe
                 Mathf.RoundToInt(Vector3.Distance(game.Player.transform.position, world)) + " 米", smallCentre);
         }
 
+        private void DrawMeter(Rect rect, string label, float value, float maxValue,
+            Color fillColor, string valueLabel)
+        {
+            GUI.Label(new Rect(rect.x, rect.y, rect.width / 2, 20), label, small);
+            GUI.Label(new Rect(rect.x + rect.width / 2, rect.y, rect.width / 2, 20), valueLabel, statValue);
+            Rect track = new Rect(rect.x, rect.y + 23, rect.width, 7);
+            Color previousColor = GUI.color;
+            GUI.color = new Color(0.72f, 0.75f, 0.75f, 1f);
+            GUI.DrawTexture(track, meterTexture);
+            GUI.color = previousColor;
+            float normalized = maxValue > 0 ? Mathf.Clamp01(value / maxValue) : 0;
+            if (normalized <= 0) return;
+            Rect fill = new Rect(track.x, track.y, track.width * normalized, track.height);
+            GUI.color = fillColor;
+            GUI.DrawTexture(fill, meterTexture);
+            GUI.color = previousColor;
+        }
+
         private void OnDestroy()
         {
             foreach (Texture2D texture in new[] { white, fadeDown, fadeUp, fadeRight, round, ring, glow, diamond, buttonIdle, buttonHover })

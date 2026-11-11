@@ -12,5 +12,7 @@
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
     <Compile Include="../Assets/Scripts/Core/*.cs" />
     <Compile Include="CoreTests.cs" />
+    <Compile Include="SandboxTests.cs" />
+    <Compile Include="SandboxForgettingTests.cs" />
   </ItemGroup>
 </Project>

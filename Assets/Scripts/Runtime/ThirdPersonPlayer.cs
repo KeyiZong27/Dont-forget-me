@@ -8,6 +8,7 @@ namespace DontForgetMe
         public float Stamina { get; private set; } = 100f;
         public float Health { get; private set; } = 100f;
         public float Energy { get; private set; } = 100f;
+        public float EnergyDrainPerSecond { get; private set; }
         public float Heading { get; private set; }
         public float LastHitTime { get; private set; } = -10f;
         public bool Sprinting { get; private set; }
@@ -129,7 +130,7 @@ namespace DontForgetMe
 
         private void LateUpdate()
         {
-            if (view != null) UpdateCamera(false);
+            if (view != null && PlayerWorld.CanSimulate) UpdateCamera(false);
         }
 
         private void UpdateCamera(bool immediate)
