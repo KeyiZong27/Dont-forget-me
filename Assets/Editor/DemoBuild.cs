@@ -23,8 +23,8 @@ namespace DontForgetMe.Editor
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             PlayerSettings.companyName = "DontForgetMe";
             PlayerSettings.productName = "Dont Forget Me - Opening";
-            PlayerSettings.defaultScreenWidth = 1280;
-            PlayerSettings.defaultScreenHeight = 800;
+            PlayerSettings.defaultScreenWidth = 1600;
+            PlayerSettings.defaultScreenHeight = 1000;
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
             PlayerSettings.runInBackground = false;
             PlayerSettings.colorSpace = ColorSpace.Linear;
@@ -32,26 +32,28 @@ namespace DontForgetMe.Editor
             PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneOSX, true);
             PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, true);
 
-            Shader standard = Shader.Find("Standard");
-            if (standard == null)
-                throw new InvalidOperationException("The Demo needs the Built-in Render Pipeline Standard shader.");
+            RemoveLegacyShader();
+            AssetDatabase.SaveAssets();
+        }
+
+        // Earlier grey-box builds force-included the Built-in "Standard" shader. Nothing uses it
+        // under URP, and leaving it listed compiles thousands of unused variants into every build.
+        private static void RemoveLegacyShader()
+        {
             UnityEngine.Object[] graphics = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/GraphicsSettings.asset");
-            if (graphics.Length == 0)
-                throw new InvalidOperationException("GraphicsSettings.asset is not available. Reopen the project before building.");
+            if (graphics.Length == 0) return;
             SerializedObject settings = new SerializedObject(graphics[0]);
             SerializedProperty shaders = settings.FindProperty("m_AlwaysIncludedShaders");
-            if (shaders == null)
-                throw new InvalidOperationException("Cannot configure the required Standard shader.");
-            bool included = false;
-            for (int i = 0; i < shaders.arraySize; i++)
-                if (shaders.GetArrayElementAtIndex(i).objectReferenceValue == standard) included = true;
-            if (!included)
+            if (shaders == null) return;
+            bool changed = false;
+            for (int i = shaders.arraySize - 1; i >= 0; i--)
             {
-                shaders.InsertArrayElementAtIndex(shaders.arraySize);
-                shaders.GetArrayElementAtIndex(shaders.arraySize - 1).objectReferenceValue = standard;
-                settings.ApplyModifiedPropertiesWithoutUndo();
+                Shader shader = shaders.GetArrayElementAtIndex(i).objectReferenceValue as Shader;
+                if (shader == null || shader.name != "Standard") continue;
+                shaders.DeleteArrayElementAtIndex(i);
+                changed = true;
             }
-            AssetDatabase.SaveAssets();
+            if (changed) settings.ApplyModifiedPropertiesWithoutUndo();
         }
 
         [MenuItem("Dont Forget Me/Open Opening Scene")]

@@ -1,0 +1,963 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de85394301e304fe49bfc6717c35cc43, type: 3}
+  m_Name: ArtCatalog
+  m_EditorClassIdentifier: 
+  entries:
+  - id: surf/asphalt_02
+    asset: {fileID: 2100000, guid: 34e2742bc0d8f4f0685d5f76d61a7a9c, type: 2}
+    size: {x: 3, y: 3, z: 3}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/blue_metal_plate
+    asset: {fileID: 2100000, guid: e19d3705a24ae4d408390c00485d9d29, type: 2}
+    size: {x: 2.5, y: 2.5, z: 2.5}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/brick_pavement_02
+    asset: {fileID: 2100000, guid: 7b7147edb083749fa8e821ee11fe816b, type: 2}
+    size: {x: 2, y: 2, z: 2}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/concrete_floor_worn_001
+    asset: {fileID: 2100000, guid: 9aaca2bb43f634ef692f06b07a5ba77e, type: 2}
+    size: {x: 3, y: 3, z: 3}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/concrete_wall_008
+    asset: {fileID: 2100000, guid: f1c935a84b9094f60b269444ed5e267b, type: 2}
+    size: {x: 2.71, y: 2.71, z: 2.71}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/corrugated_iron_02
+    asset: {fileID: 2100000, guid: 8b0afa7cb527f4ca1a100f3d585086db, type: 2}
+    size: {x: 2.7, y: 2.7, z: 2.7}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/denim_fabric
+    asset: {fileID: 2100000, guid: e361c3a892ccb4d799a1141fcaefd453, type: 2}
+    size: {x: 0.4, y: 0.4, z: 0.4}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/dirty_concrete
+    asset: {fileID: 2100000, guid: 3e4c91a5f180e45aaa42d31134ba2fe1, type: 2}
+    size: {x: 3, y: 3, z: 3}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/green_metal_rust
+    asset: {fileID: 2100000, guid: 3a9e3b95dbb574827a9ff432ac532416, type: 2}
+    size: {x: 1, y: 1, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/long_white_tiles
+    asset: {fileID: 2100000, guid: 2085e3cbe8ca64cbfaf0c5ecf0e13446, type: 2}
+    size: {x: 1.27, y: 1.27, z: 1.27}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/old_wood_floor
+    asset: {fileID: 2100000, guid: e3b8999e7937c4a47b77aab900f6bd2e, type: 2}
+    size: {x: 3, y: 3, z: 3}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/painted_metal_shutter
+    asset: {fileID: 2100000, guid: 3bfbccc9d26f5485584c2681bcb6d872, type: 2}
+    size: {x: 2, y: 2, z: 2}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/plastered_wall_04
+    asset: {fileID: 2100000, guid: 9ecaea43608b34d95b3e952ceab3ecb3, type: 2}
+    size: {x: 3.2, y: 3.2, z: 3.2}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/red_brick_03
+    asset: {fileID: 2100000, guid: 8905940a86f434c2fb061534c5fa9b3a, type: 2}
+    size: {x: 1, y: 1, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/rough_plaster_brick_02
+    asset: {fileID: 2100000, guid: e4c4d6e0e3a8d41739b13a44810a5cbf, type: 2}
+    size: {x: 1.5, y: 1.5, z: 1.5}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/rusty_metal_02
+    asset: {fileID: 2100000, guid: 34917e95f812046a49aad15ea571bb25, type: 2}
+    size: {x: 1, y: 1, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/rusty_painted_metal
+    asset: {fileID: 2100000, guid: 58e82783fc5184dc782fd37417e74655, type: 2}
+    size: {x: 2.2, y: 2.2, z: 2.2}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/square_concrete_pavers
+    asset: {fileID: 2100000, guid: 36a455699147b4795a87214c1e10582d, type: 2}
+    size: {x: 1.8, y: 1.8, z: 1.8}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/worn_plaster_wall
+    asset: {fileID: 2100000, guid: 2db0d1961f3074245aa6b8248f07a510, type: 2}
+    size: {x: 1.8, y: 1.8, z: 1.8}
+    center: {x: 0, y: 0, z: 0}
+  - id: surf/yellow_plaster
+    asset: {fileID: 2100000, guid: 1e46e3cdb0ef249c89a4fcfab4c59070, type: 2}
+    size: {x: 2, y: 2, z: 2}
+    center: {x: 0, y: 0, z: 0}
+  - id: mat/plain
+    asset: {fileID: 2100000, guid: 1efd5eeb7c2314a39a192cc2d3d02b3f, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: mat/metal
+    asset: {fileID: 2100000, guid: f0e6e7c85cd864c5d8a895f940ea9044, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: mat/glass
+    asset: {fileID: 2100000, guid: bdc8562c5c9ea48df9ae6bf4f4978992, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: mat/emissive
+    asset: {fileID: 2100000, guid: dafddfdfbf0af4a329a1d1dcf730c2ed, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: mat/cloth
+    asset: {fileID: 2100000, guid: 76dd4b8f061a34b7da4e6621356628cc, type: 2}
+    size: {x: 0.4, y: 0.4, z: 0.4}
+    center: {x: 0, y: 0, z: 0}
+  - id: mat/clothcut
+    asset: {fileID: 2100000, guid: 73d815f34a2b14de4a4fbcf56a8a5a54, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: mat/decal
+    asset: {fileID: 2100000, guid: b0a3ede0bd07e4a51b713f1bc95b2c73, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: mat/water
+    asset: {fileID: 2100000, guid: 6e4d1c0722fed44bb998c91559f5154f, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: mat/shaft
+    asset: {fileID: 2100000, guid: 76ae89241363142a9ad9760551bea1d6, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: mat/text
+    asset: {fileID: 2100000, guid: 982c1fa3b9cbb492090678d936957f84, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: propmat/adjustable_wrench
+    asset: {fileID: 2100000, guid: 7bf969327c4ae4978bdb1a5ff2dd2b6b, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/adjustable_wrench
+    asset: {fileID: 3157481722136466420, guid: 05f436c4dd1284aed8dd62ddc2e3f419, type: 3}
+    size: {x: 0.06834418, y: 0.25413033, z: 0.030590376}
+    center: {x: 0.018500214, y: 0.07839478, z: -0.00000092200935}
+  - id: prop/adjustable_wrench#0
+    asset: {fileID: 3157481722136466420, guid: 05f436c4dd1284aed8dd62ddc2e3f419, type: 3}
+    size: {x: 0.06834418, y: 0.23508942, z: 0.030590376}
+    center: {x: 0.018500214, y: 0.06887432, z: -0.00000092207085}
+  - id: prop/adjustable_wrench#1
+    asset: {fileID: 3157481722136466420, guid: 05f436c4dd1284aed8dd62ddc2e3f419, type: 3}
+    size: {x: 0.052719302, y: 0.117237695, z: 0.016944967}
+    center: {x: 0.014581523, y: 0.1468411, z: -0.0000009313661}
+  - id: prop/adjustable_wrench#2
+    asset: {fileID: 3157481722136466420, guid: 05f436c4dd1284aed8dd62ddc2e3f419, type: 3}
+    size: {x: 0.02935986, y: 0.016316464, z: 0.02935987}
+    center: {x: 0.03110416, y: 0.14613645, z: -0.000024981964}
+  - id: propmat/bench_vice_01
+    asset: {fileID: 2100000, guid: 0a8d1817d9c7d4de3a373455becf8b4c, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/bench_vice_01
+    asset: {fileID: 954702245716402802, guid: 6c0f3f229a71045109009428a2880208, type: 3}
+    size: {x: 0.20048237, y: 0.28514877, z: 0.39572173}
+    center: {x: 0.00011664629, y: 0.05698818, z: 0.016633466}
+  - id: prop/bench_vice_01#0
+    asset: {fileID: 954702245716402802, guid: 6c0f3f229a71045109009428a2880208, type: 3}
+    size: {x: 0.017920986, y: 0.19929005, z: 0.017783966}
+    center: {x: 0.0017935472, y: 0.014058821, z: 0.19753078}
+  - id: prop/bench_vice_01#1
+    asset: {fileID: 954702245716402802, guid: 6c0f3f229a71045109009428a2880208, type: 3}
+    size: {x: 0.13375005, y: 0.15201181, z: 0.3664722}
+    center: {x: 0.00011667436, y: 0.11596571, z: 0.0020087098}
+  - id: prop/bench_vice_01#2
+    asset: {fileID: 954702245716402802, guid: 6c0f3f229a71045109009428a2880208, type: 3}
+    size: {x: 0.029577108, y: 0.028952148, z: 0.03266383}
+    center: {x: 0.0020190899, y: 0.07711774, z: 0.19816242}
+  - id: prop/bench_vice_01#3
+    asset: {fileID: 954702245716402802, guid: 6c0f3f229a71045109009428a2880208, type: 3}
+    size: {x: 0.20048237, y: 0.1995211, z: 0.2731832}
+    center: {x: 0.00011664815, y: 0.09980202, z: 0.025163246}
+  - id: propmat/boombox
+    asset: {fileID: 2100000, guid: 1385892c4323e43f889e0fd975d479b3, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: propmat/boombox_speakers
+    asset: {fileID: 2100000, guid: 37f21160584c4418cb24df3777ae9ab7, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/boombox
+    asset: {fileID: 949443399614158418, guid: efed6f35b1350402aa4c572fea71f5e4, type: 3}
+    size: {x: 0.7237796, y: 0.4701007, z: 0.18646474}
+    center: {x: 0, y: 0.23505034, z: 0.01989381}
+  - id: propmat/cardboard_box_01
+    asset: {fileID: 2100000, guid: 6dbc0b0dadc314b45bcc605e5621f3d7, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/cardboard_box_01
+    asset: {fileID: 4060403802813963483, guid: 8ab221f652dbd4ebe8f16be5a0c8e761, type: 3}
+    size: {x: 0.38702357, y: 0.34179968, z: 0.5158705}
+    center: {x: -0.0010061413, y: 0.16414385, z: 0.032851517}
+  - id: propmat/cement_bag
+    asset: {fileID: 2100000, guid: cc9568763ce444709b461a8bb76c799c, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/cement_bag
+    asset: {fileID: 4879625715621972581, guid: 223a646b5fb46487b91c14279b0f61fa, type: 3}
+    size: {x: 0.46247384, y: 0.17991, z: 0.6995842}
+    center: {x: -0.0023823828, y: 0.091240294, z: 0.0015923381}
+  - id: propmat/covered_car
+    asset: {fileID: 2100000, guid: 1d8231f5ce90b4b8aa6497bfa159fc36, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/covered_car
+    asset: {fileID: 3203379218986549191, guid: 0b94b3d55ae964365a360e591a494398, type: 3}
+    size: {x: 1.788963, y: 1.4111135, z: 4.380255}
+    center: {x: -0.04780084, y: 0.70555675, z: 0.023811102}
+  - id: prop/covered_car#0
+    asset: {fileID: 3203379218986549191, guid: 0b94b3d55ae964365a360e591a494398, type: 3}
+    size: {x: 1.788963, y: 1.2853526, z: 4.380255}
+    center: {x: -0.047800817, y: 0.7684373, z: 0.023811202}
+  - id: prop/covered_car#1
+    asset: {fileID: 3203379218986549191, guid: 0b94b3d55ae964365a360e591a494398, type: 3}
+    size: {x: 0.16102745, y: 0.5982484, z: 0.5982484}
+    center: {x: -0.75764406, y: 0.29999998, z: 1.2806001}
+  - id: prop/covered_car#2
+    asset: {fileID: 3203379218986549191, guid: 0b94b3d55ae964365a360e591a494398, type: 3}
+    size: {x: 0.16102728, y: 0.6000001, z: 0.60000014}
+    center: {x: 0.682444, y: 0.30000004, z: 1.2806001}
+  - id: prop/covered_car#3
+    asset: {fileID: 3203379218986549191, guid: 0b94b3d55ae964365a360e591a494398, type: 3}
+    size: {x: 0.16102728, y: 0.5999322, z: 0.5999322}
+    center: {x: 0.6724441, y: 0.30000004, z: -1.2994}
+  - id: prop/covered_car#4
+    asset: {fileID: 3203379218986549191, guid: 0b94b3d55ae964365a360e591a494398, type: 3}
+    size: {x: 0.16102745, y: 0.6000001, z: 0.60000014}
+    center: {x: -0.7476439, y: 0.30000004, z: -1.2993999}
+  - id: propmat/cross_pein_hammer
+    asset: {fileID: 2100000, guid: de437e07d6c934c4aaa340745f7973a1, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/cross_pein_hammer
+    asset: {fileID: 2353586185606948941, guid: 78e6dec5f14024b4dbdb1b28f6d1f030, type: 3}
+    size: {x: 0.09907165, y: 0.30024993, z: 0.024275782}
+    center: {x: -0.0051674843, y: 0.026922733, z: 0.0023210878}
+  - id: propmat/exterior_aircon_unit_01
+    asset: {fileID: 2100000, guid: 51a586aba1c22499ebefd2a11b93eebb, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: propmat/exterior_aircon_unit_rusted_01
+    asset: {fileID: 2100000, guid: e2e610a82f8764680b250abc925bf626, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/exterior_aircon_unit
+    asset: {fileID: 7635129158825250774, guid: 0405e8a55c8c74e33ae62cfc2342d407, type: 3}
+    size: {x: 1.7999713, y: 0.9278973, z: 0.37415937}
+    center: {x: -0.00728786, y: 0.14388296, z: -0.028886586}
+  - id: prop/exterior_aircon_unit#0
+    asset: {fileID: 7635129158825250774, guid: 0405e8a55c8c74e33ae62cfc2342d407, type: 3}
+    size: {x: 0.7999713, y: 0.9278973, z: 0.37415937}
+    center: {x: 0.49271214, y: 0.14388295, z: -0.028886586}
+  - id: prop/exterior_aircon_unit#1
+    asset: {fileID: 7635129158825250774, guid: 0405e8a55c8c74e33ae62cfc2342d407, type: 3}
+    size: {x: 0.7999713, y: 0.9278973, z: 0.37415937}
+    center: {x: -0.50728786, y: 0.14388295, z: -0.028886586}
+  - id: propmat/garden_hose_wall_mounted_01
+    asset: {fileID: 2100000, guid: 7f119797a49ca4ad7a93785c836d6d02, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/garden_hose_wall_mounted_01
+    asset: {fileID: 2304830515014193043, guid: adbabde350f9c4200ac011e486f9c740, type: 3}
+    size: {x: 0.46672836, y: 0.55700195, z: 0.2503092}
+    center: {x: 0.000966087, y: -0.02322498, z: 0.1193664}
+  - id: prop/garden_hose_wall_mounted_01#0
+    asset: {fileID: 2304830515014193043, guid: adbabde350f9c4200ac011e486f9c740, type: 3}
+    size: {x: 0.46672836, y: 0.55700195, z: 0.24328458}
+    center: {x: 0.00096608885, y: -0.023224987, z: 0.11886993}
+  - id: prop/garden_hose_wall_mounted_01#1
+    asset: {fileID: 2304830515014193043, guid: adbabde350f9c4200ac011e486f9c740, type: 3}
+    size: {x: 0.03412228, y: 0.19261271, z: 0.2503092}
+    center: {x: 7.2759576e-10, y: 0.075505935, z: 0.1193664}
+  - id: propmat/hand_truck
+    asset: {fileID: 2100000, guid: 0f053922a95ad49f6894789cc97a5ab9, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/hand_truck
+    asset: {fileID: 6913242354868882303, guid: 420f775cae1664162961cf9c9cf64144, type: 3}
+    size: {x: 0.59325284, y: 1.402513, z: 0.69252735}
+    center: {x: 0.000000029802322, y: 0.7012088, z: 0.2506285}
+  - id: propmat/industrial_wall_lamp
+    asset: {fileID: 2100000, guid: 1ae5731060f584b80a0ca488d579e4bb, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: propmat/industrial_wall_lamp_glass
+    asset: {fileID: 2100000, guid: 2fc0f69c154b94e77ac0ffc957b2e5c1, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/industrial_wall_lamp
+    asset: {fileID: 6369524610511912150, guid: 1fb329382cf114452986fc524e00a7c7, type: 3}
+    size: {x: 0.2734608, y: 0.4299067, z: 0.14037852}
+    center: {x: -0.000006183982, y: 0.000000014901161, z: 0.070189245}
+  - id: propmat/korean_fire_extinguisher_01_body
+    asset: {fileID: 2100000, guid: e1bf536681a6f4fccbc943934e143792, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: propmat/korean_fire_extinguisher_01_glass
+    asset: {fileID: 2100000, guid: de1fca1ad4f8f426ea89110b6a8f9537, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: propmat/korean_fire_extinguisher_01_paper
+    asset: {fileID: 2100000, guid: e7033fd107b7e4558808d37b97c9db56, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/korean_fire_extinguisher_01
+    asset: {fileID: 402700315500366343, guid: fc025464671c042afa2c9938309a33dc, type: 3}
+    size: {x: 0.27995756, y: 0.65925074, z: 0.3674433}
+    center: {x: -0.000000014901161, y: 0.32962528, z: 0.060481124}
+  - id: propmat/metal_tool_chest
+    asset: {fileID: 2100000, guid: 9829498eb65bb4f7b81c18164e823409, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/metal_tool_chest
+    asset: {fileID: 6622937002203427207, guid: e78eb7e760e834152b4e4e91ceaec3e4, type: 3}
+    size: {x: 0.6853884, y: 0.65183556, z: 0.4071533}
+    center: {x: 0.02674222, y: 0.3267268, z: 0.00615415}
+  - id: prop/metal_tool_chest#0
+    asset: {fileID: 6622937002203427207, guid: e78eb7e760e834152b4e4e91ceaec3e4, type: 3}
+    size: {x: 0.6853884, y: 0.3479161, z: 0.31565514}
+    center: {x: 0.026742233, y: 0.17476708, z: 0.023670478}
+  - id: prop/metal_tool_chest#1
+    asset: {fileID: 6622937002203427207, guid: e78eb7e760e834152b4e4e91ceaec3e4, type: 3}
+    size: {x: 0.008763151, y: 0.06640242, z: 0.13075934}
+    center: {x: 0.36312705, y: 0.18893236, z: 0.026742164}
+  - id: prop/metal_tool_chest#2
+    asset: {fileID: 6622937002203427207, guid: e78eb7e760e834152b4e4e91ceaec3e4, type: 3}
+    size: {x: 0.008763072, y: 0.06640242, z: 0.13075934}
+    center: {x: -0.30964258, y: 0.18893228, z: 0.026742194}
+  - id: prop/metal_tool_chest#3
+    asset: {fileID: 6622937002203427207, guid: e78eb7e760e834152b4e4e91ceaec3e4, type: 3}
+    size: {x: 0.6646989, y: 0.097381346, z: 0.090238035}
+    center: {x: 0.02674222, y: 0.36428556, z: -0.02828585}
+  - id: prop/metal_tool_chest#4
+    asset: {fileID: 6622937002203427207, guid: e78eb7e760e834152b4e4e91ceaec3e4, type: 3}
+    size: {x: 0.66424596, y: 0.10803365, z: 0.10803362}
+    center: {x: 0.026742201, y: 0.42987078, z: -0.09744266}
+  - id: prop/metal_tool_chest#5
+    asset: {fileID: 6622937002203427207, guid: e78eb7e760e834152b4e4e91ceaec3e4, type: 3}
+    size: {x: 0.6602831, y: 0.31267628, z: 0.07783328}
+    center: {x: 0.026695628, y: 0.49630642, z: -0.15850587}
+  - id: prop/metal_tool_chest#6
+    asset: {fileID: 6622937002203427207, guid: e78eb7e760e834152b4e4e91ceaec3e4, type: 3}
+    size: {x: 0.055244707, y: 0.027197387, z: 0.05520432}
+    center: {x: 0.012718572, y: 0.3034884, z: 0.18212862}
+  - id: propmat/metal_toolbox
+    asset: {fileID: 2100000, guid: 4904e6c3b52b84b5291139a21bd00250, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/metal_toolbox
+    asset: {fileID: 5176399293581649479, guid: 2c267ff339a1944ae89c67a6abfd4ac2, type: 3}
+    size: {x: 0.4000099, y: 0.34710586, z: 0.29232877}
+    center: {x: 0.0000048726797, y: 0.17355292, z: -0.03236039}
+  - id: prop/metal_toolbox#0
+    asset: {fileID: 5176399293581649479, guid: 2c267ff339a1944ae89c67a6abfd4ac2, type: 3}
+    size: {x: 0.40000013, y: 0.12210723, z: 0.2194595}
+    center: {x: -0.0000000121071935, y: 0.061053596, z: 0.004074256}
+  - id: prop/metal_toolbox#1
+    asset: {fileID: 5176399293581649479, guid: 2c267ff339a1944ae89c67a6abfd4ac2, type: 3}
+    size: {x: 0.40000066, y: 0.23107193, z: 0.19569817}
+    center: {x: 0.00000948552, y: 0.23156989, z: -0.08067569}
+  - id: prop/metal_toolbox#2
+    asset: {fileID: 5176399293581649479, guid: 2c267ff339a1944ae89c67a6abfd4ac2, type: 3}
+    size: {x: 0.17653364, y: 0.05899137, z: 0.052700423}
+    center: {x: 0.000009804149, y: 0.23565432, z: -0.13482791}
+  - id: prop/metal_toolbox#3
+    asset: {fileID: 5176399293581649479, guid: 2c267ff339a1944ae89c67a6abfd4ac2, type: 3}
+    size: {x: 0.02370302, y: 0.03360032, z: 0.043749638}
+    center: {x: 0.11706438, y: 0.29295227, z: 0.02137258}
+  - id: prop/metal_toolbox#4
+    asset: {fileID: 5176399293581649479, guid: 2c267ff339a1944ae89c67a6abfd4ac2, type: 3}
+    size: {x: 0.023894647, y: 0.033779606, z: 0.044020537}
+    center: {x: -0.11909907, y: 0.29288772, z: 0.021470053}
+  - id: prop/metal_toolbox#5
+    asset: {fileID: 5176399293581649479, guid: 2c267ff339a1944ae89c67a6abfd4ac2, type: 3}
+    size: {x: 0.38633734, y: 0.08689299, z: 0.18665008}
+    center: {x: -0.0000000013148084, y: 0.14457493, z: 0.0000000043119215}
+  - id: propmat/metal_trash_can
+    asset: {fileID: 2100000, guid: cbfce2d62777a4abba6b7a99c65859ea, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: propmat/metal_trash_can_rust
+    asset: {fileID: 2100000, guid: 003b7f9ce7f724ffdab78a4b365609b2, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/metal_trash_can
+    asset: {fileID: 8336196796485319100, guid: acf4f8ba5934a4ed4b48536bedf94301, type: 3}
+    size: {x: 1.846935, y: 0.9061699, z: 0.5562899}
+    center: {x: 0.096351266, y: 0.45314667, z: -0.000000059604645}
+  - id: prop/metal_trash_can#0
+    asset: {fileID: 8336196796485319100, guid: acf4f8ba5934a4ed4b48536bedf94301, type: 3}
+    size: {x: 0.61343175, y: 0.9061601, z: 0.5523693}
+    center: {x: -0.5, y: 0.45315155, z: 0.000019818079}
+  - id: prop/metal_trash_can#1
+    asset: {fileID: 8336196796485319100, guid: acf4f8ba5934a4ed4b48536bedf94301, type: 3}
+    size: {x: 0.09591754, y: 0.09394109, z: 0.18550763}
+    center: {x: -0.20410043, y: 0.68631995, z: -0.00019629634}
+  - id: prop/metal_trash_can#2
+    asset: {fileID: 8336196796485319100, guid: acf4f8ba5934a4ed4b48536bedf94301, type: 3}
+    size: {x: 0.08726723, y: 0.11295885, z: 0.18550763}
+    center: {x: -0.7834826, y: 0.6899845, z: -0.00019633729}
+  - id: prop/metal_trash_can#3
+    asset: {fileID: 8336196796485319100, guid: acf4f8ba5934a4ed4b48536bedf94301, type: 3}
+    size: {x: 0.25113788, y: 0.56731784, z: 0.5562899}
+    center: {x: -0.105750084, y: 0.29100454, z: -0.00000006879645}
+  - id: prop/metal_trash_can#4
+    asset: {fileID: 8336196796485319100, guid: acf4f8ba5934a4ed4b48536bedf94301, type: 3}
+    size: {x: 0.6114267, y: 0.9061576, z: 0.54860646}
+    center: {x: 0.49907023, y: 0.45314053, z: 0.000010213815}
+  - id: prop/metal_trash_can#5
+    asset: {fileID: 8336196796485319100, guid: acf4f8ba5934a4ed4b48536bedf94301, type: 3}
+    size: {x: 0.09983789, y: 0.104176946, z: 0.18550763}
+    center: {x: 0.79520816, y: 0.69143784, z: -0.0001962965}
+  - id: prop/metal_trash_can#6
+    asset: {fileID: 8336196796485319100, guid: acf4f8ba5934a4ed4b48536bedf94301, type: 3}
+    size: {x: 0.10706781, y: 0.10752229, z: 0.18550766}
+    center: {x: 0.22359101, y: 0.60785216, z: -0.00019629547}
+  - id: prop/metal_trash_can#7
+    asset: {fileID: 8336196796485319100, guid: acf4f8ba5934a4ed4b48536bedf94301, type: 3}
+    size: {x: 0.25237304, y: 0.567635, z: 0.5439519}
+    center: {x: 0.8936323, y: 0.29084197, z: 0.0027444575}
+  - id: propmat/modified_thermos
+    asset: {fileID: 2100000, guid: 448cec3f7a6154ffab93f668b5f87bd4, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/modified_thermos
+    asset: {fileID: 1363622351497706558, guid: 8d6e2e35a08004cdabd2998c3f8a01c0, type: 3}
+    size: {x: 0.14267507, y: 0.30622423, z: 0.10107249}
+    center: {x: -0.020801336, y: 0.15292889, z: -0.0000000037252903}
+  - id: propmat/mounted_fluorescent_lights
+    asset: {fileID: 2100000, guid: 167d83461c09e4115a61eb604262daa7, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/mounted_fluorescent_lights
+    asset: {fileID: 2227856121793281809, guid: e2c3d08d4e2c44ee08d084912fd16d61, type: 3}
+    size: {x: 0.9121809, y: 0.03535319, z: 0.6454365}
+    center: {x: -0.00000014901161, y: -0.017591242, z: -0.002633512}
+  - id: prop/mounted_fluorescent_lights#0
+    asset: {fileID: 2227856121793281809, guid: e2c3d08d4e2c44ee08d084912fd16d61, type: 3}
+    size: {x: 0.91218054, y: 0.035353173, z: 0.040169626}
+    center: {x: 0, y: -0.017591251, z: 0.3}
+  - id: prop/mounted_fluorescent_lights#1
+    asset: {fileID: 2227856121793281809, guid: e2c3d08d4e2c44ee08d084912fd16d61, type: 3}
+    size: {x: 0.9121809, y: 0.035353173, z: 0.040447205}
+    center: {x: -0.00000016298145, y: -0.017591253, z: 0.20008253}
+  - id: prop/mounted_fluorescent_lights#2
+    asset: {fileID: 2227856121793281809, guid: e2c3d08d4e2c44ee08d084912fd16d61, type: 3}
+    size: {x: 0.9121809, y: 0.035353173, z: 0.040447205}
+    center: {x: -0.00000016298145, y: -0.017591253, z: 0.10008253}
+  - id: prop/mounted_fluorescent_lights#3
+    asset: {fileID: 2227856121793281809, guid: e2c3d08d4e2c44ee08d084912fd16d61, type: 3}
+    size: {x: 0.9109227, y: 0.032354232, z: 0.042189922}
+    center: {x: 0, y: -0.016091783, z: -0.000016494134}
+  - id: prop/mounted_fluorescent_lights#4
+    asset: {fileID: 2227856121793281809, guid: e2c3d08d4e2c44ee08d084912fd16d61, type: 3}
+    size: {x: 0.9109227, y: 0.032354273, z: 0.042189922}
+    center: {x: 0, y: -0.01609178, z: -0.10001649}
+  - id: prop/mounted_fluorescent_lights#5
+    asset: {fileID: 2227856121793281809, guid: e2c3d08d4e2c44ee08d084912fd16d61, type: 3}
+    size: {x: 0.9109227, y: 0.032016713, z: 0.045728788}
+    center: {x: 0, y: -0.015923023, z: -0.20001921}
+  - id: prop/mounted_fluorescent_lights#6
+    asset: {fileID: 2227856121793281809, guid: e2c3d08d4e2c44ee08d084912fd16d61, type: 3}
+    size: {x: 0.9054942, y: 0.027027689, z: 0.05017895}
+    center: {x: 0, y: -0.013513842, z: -0.3002623}
+  - id: propmat/old_tyre
+    asset: {fileID: 2100000, guid: f3dc1fe00f36947288ffc5b68a9d9ca4, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/old_tyre
+    asset: {fileID: 9070622957818640664, guid: 1eed5c956cbea44b5ac370e4c927b610, type: 3}
+    size: {x: 0.6, y: 0.6000001, z: 0.1650001}
+    center: {x: 0, y: 0, z: -0.00026332587}
+  - id: propmat/painted_wooden_bench
+    asset: {fileID: 2100000, guid: 22f4c619cff5c4f7385154be1b1857df, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/painted_wooden_bench
+    asset: {fileID: 8608812131629939357, guid: 0c4ed8475431146c8b7cdc7970c1c079, type: 3}
+    size: {x: 1.1649436, y: 0.88929164, z: 0.4965433}
+    center: {x: -0.006410718, y: 0.4441463, z: -0.005427301}
+  - id: propmat/painted_wooden_chair_01
+    asset: {fileID: 2100000, guid: b099c7b38842b40d5939f574e17d31a1, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/painted_wooden_chair_01
+    asset: {fileID: 1585412503085975511, guid: bbbcf4b8c6dd140e6a72c98258e72176, type: 3}
+    size: {x: 0.43175146, y: 0.95648205, z: 0.53982425}
+    center: {x: 0.0015244484, y: 0.47749949, z: -0.030687213}
+  - id: propmat/planter_box_01
+    asset: {fileID: 2100000, guid: ff2128ed8113947f5a5f647191f4e5e8, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/planter_box_01
+    asset: {fileID: 2503886920087269257, guid: b9eb900ee810a4c629ce0df768cba9e7, type: 3}
+    size: {x: 0.91261137, y: 0.42496836, z: 0.4136681}
+    center: {x: 0.00041010976, y: 0.21251233, z: -0.00030082464}
+  - id: propmat/plastic_broom
+    asset: {fileID: 2100000, guid: 349d772235df148aba521bcbb27a186c, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/plastic_broom
+    asset: {fileID: 3505646870069192097, guid: 19c43624ac8ca465b9b272dad5cbb92f, type: 3}
+    size: {x: 0.4163926, y: 1.1975236, z: 0.56659317}
+    center: {x: -0.000030517578, y: 0.5986154, z: -0.24468356}
+  - id: propmat/plastic_crate_01
+    asset: {fileID: 2100000, guid: 0d1952bb44ceb4a21bcdee95ea8a35e6, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/plastic_crate_01
+    asset: {fileID: 7640669201578471932, guid: 29d8367b9c96c4eb089e7b7157c7a0d3, type: 3}
+    size: {x: 0.2980006, y: 0.2641695, z: 0.40800422}
+    center: {x: 0, y: 0.13208473, z: -0.000000014901161}
+  - id: propmat/plastic_jerrycan
+    asset: {fileID: 2100000, guid: 8e194495326c447db999d721886390f5, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/plastic_jerrycan
+    asset: {fileID: 2100604703161260759, guid: 97cd8762476d14d5ba97aa909bd983bf, type: 3}
+    size: {x: 0.2680229, y: 0.31842753, z: 0.3408928}
+    center: {x: 0.0006572604, y: 0.15908797, z: 0.0038141161}
+  - id: propmat/plastic_monobloc_chair_01
+    asset: {fileID: 2100000, guid: 0504e5183dd774c36916575f733e57c3, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/plastic_monobloc_chair_01
+    asset: {fileID: 6670743608238038270, guid: 0623707bb4c77491d80095bbbe2c2076, type: 3}
+    size: {x: 0.64186114, y: 0.8798413, z: 0.62759215}
+    center: {x: 0, y: 0.43990108, z: -0.022154748}
+  - id: propmat/pliers
+    asset: {fileID: 2100000, guid: 787bbac1f19064e86b664fc60f0446b1, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/pliers
+    asset: {fileID: 4794903737247721035, guid: dcad64f5fe0b641e8a7780ae7fba3994, type: 3}
+    size: {x: 0.055289693, y: 0.17978325, z: 0.017985478}
+    center: {x: 0, y: -0.039972067, z: 0}
+  - id: prop/pliers#0
+    asset: {fileID: 4794903737247721035, guid: dcad64f5fe0b641e8a7780ae7fba3994, type: 3}
+    size: {x: 0.04038607, y: 0.17978325, z: 0.017985478}
+    center: {x: 0.007451811, y: -0.039972067, z: 3.994658e-10}
+  - id: prop/pliers#1
+    asset: {fileID: 4794903737247721035, guid: dcad64f5fe0b641e8a7780ae7fba3994, type: 3}
+    size: {x: 0.040386107, y: 0.17978325, z: 0.017985478}
+    center: {x: -0.0074517927, y: -0.039972067, z: 3.994658e-10}
+  - id: prop/pliers#2
+    asset: {fileID: 4794903737247721035, guid: dcad64f5fe0b641e8a7780ae7fba3994, type: 3}
+    size: {x: 0.009779474, y: 0.009779477, z: 0.009165145}
+    center: {x: 0, y: 0, z: 0}
+  - id: propmat/potted_plant_04
+    asset: {fileID: 2100000, guid: f1768dd08c59549b69b9f3c106076f62, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/potted_plant_04
+    asset: {fileID: 8959124498299047168, guid: bc8ebbc771485483f8d3907ddca4d6fd, type: 3}
+    size: {x: 0.16788632, y: 0.26745772, z: 0.18475145}
+    center: {x: -0.000000007450581, y: 0.13410425, z: 0.008432545}
+  - id: prop/potted_plant_04#0
+    asset: {fileID: 8959124498299047168, guid: bc8ebbc771485483f8d3907ddca4d6fd, type: 3}
+    size: {x: 0.15638068, y: 0.019160122, z: 0.15623125}
+    center: {x: 0.00068602094, y: 0.1438154, z: -0.0005184205}
+  - id: prop/potted_plant_04#1
+    asset: {fileID: 8959124498299047168, guid: bc8ebbc771485483f8d3907ddca4d6fd, type: 3}
+    size: {x: 0.14733382, y: 0.021731282, z: 0.14888182}
+    center: {x: 0.000632045, y: 0.1436051, z: -0.0010604386}
+  - id: prop/potted_plant_04#2
+    asset: {fileID: 8959124498299047168, guid: bc8ebbc771485483f8d3907ddca4d6fd, type: 3}
+    size: {x: 0.14611171, y: 0.13234124, z: 0.17312738}
+    center: {x: -0.010672209, y: 0.20166248, z: 0.0142445685}
+  - id: prop/potted_plant_04#3
+    asset: {fileID: 8959124498299047168, guid: bc8ebbc771485483f8d3907ddca4d6fd, type: 3}
+    size: {x: 0.16788632, y: 0.15507446, z: 0.16788635}
+    center: {x: -0.000000005820766, y: 0.07791262, z: -0.000000009287906}
+  - id: propmat/power_box_01
+    asset: {fileID: 2100000, guid: d20f851e20c7d47c597a8d93c671b8f2, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/power_box_01
+    asset: {fileID: 6493422949942136010, guid: 9963c64add99945c2b478127662caba1, type: 3}
+    size: {x: 0.3455065, y: 0.50314283, z: 0.107139535}
+    center: {x: -0.0022541583, y: 0, z: 0.0060886443}
+  - id: prop/power_box_01#0
+    asset: {fileID: 6493422949942136010, guid: 9963c64add99945c2b478127662caba1, type: 3}
+    size: {x: 0.3455065, y: 0.50314283, z: 0.094506495}
+    center: {x: -0.0022541615, y: -2.7164902e-11, z: -0.00022787575}
+  - id: prop/power_box_01#1
+    asset: {fileID: 6493422949942136010, guid: 9963c64add99945c2b478127662caba1, type: 3}
+    size: {x: 0.3322411, y: 0.48706278, z: 0.019746387}
+    center: {x: 0.0010046468, y: -0.0019301255, z: 0.04978522}
+  - id: propmat/rollershutter_door
+    asset: {fileID: 2100000, guid: d2f2fa3c115354a9d80b6b6323bbea51, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: propmat/rollershutter_door_graffiti
+    asset: {fileID: 2100000, guid: fc383d2e379d94603b66866a02f5558e, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/rollershutter_door
+    asset: {fileID: 6563138765055025645, guid: 8cdfd1ac5e8ae47bdb84de6173b49609, type: 3}
+    size: {x: 3.08, y: 2.3999739, z: 0.30008602}
+    center: {x: -1, y: 1.1999892, z: 0.14904271}
+  - id: prop/rollershutter_door#0
+    asset: {fileID: 6563138765055025645, guid: 8cdfd1ac5e8ae47bdb84de6173b49609, type: 3}
+    size: {x: 1.08, y: 2.3999739, z: 0.30008605}
+    center: {x: 0, y: 1.1999892, z: 0.14904273}
+  - id: prop/rollershutter_door#1
+    asset: {fileID: 6563138765055025645, guid: 8cdfd1ac5e8ae47bdb84de6173b49609, type: 3}
+    size: {x: 1.08, y: 2.3999739, z: 0.30008605}
+    center: {x: -2, y: 1.1999892, z: 0.14904273}
+  - id: propmat/screwdrivers_02
+    asset: {fileID: 2100000, guid: b20e16b59c58949eba28db445e1dde71, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/screwdrivers_02
+    asset: {fileID: 2253280253711489013, guid: 2c105c4416adb4a858de77a2dc82d3d7, type: 3}
+    size: {x: 0.10045838, y: 0.027077027, z: 0.2699328}
+    center: {x: 0.03669066, y: 0, z: -0.00007994473}
+  - id: prop/screwdrivers_02#0
+    asset: {fileID: 2253280253711489013, guid: 2c105c4416adb4a858de77a2dc82d3d7, type: 3}
+    size: {x: 0.02707706, y: 0.027077027, z: 0.2699328}
+    center: {x: 0, y: -9.529877e-12, z: -0.000079942416}
+  - id: prop/screwdrivers_02#1
+    asset: {fileID: 2253280253711489013, guid: 2c105c4416adb4a858de77a2dc82d3d7, type: 3}
+    size: {x: 0.027067471, y: 0.027067488, z: 0.21998039}
+    center: {x: 0.07338612, y: 6.938894e-16, z: 0.000000005820767}
+  - id: propmat/security_light
+    asset: {fileID: 2100000, guid: 5ccac025b8624434fae82f9fa6c11295, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/security_light
+    asset: {fileID: 412560753682627632, guid: ef374c23a45a54e718f52447d41dd96a, type: 3}
+    size: {x: 0.32314473, y: 0.5309768, z: 0.41722322}
+    center: {x: 0.00039590895, y: -0.09384942, z: 0.1774276}
+  - id: prop/security_light#0
+    asset: {fileID: 412560753682627632, guid: ef374c23a45a54e718f52447d41dd96a, type: 3}
+    size: {x: 0.32314473, y: 0.41132385, z: 0.4172232}
+    center: {x: 0.00039591105, y: -0.034022972, z: 0.17742759}
+  - id: prop/security_light#1
+    asset: {fileID: 412560753682627632, guid: ef374c23a45a54e718f52447d41dd96a, type: 3}
+    size: {x: 0.30203098, y: 0.19286406, z: 0.30203205}
+    center: {x: -0.0007790397, y: -0.26290578, z: 0.22291708}
+  - id: propmat/small_lpg_tank
+    asset: {fileID: 2100000, guid: 640db06cb826f441586ecca930cd9b64, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/small_lpg_tank
+    asset: {fileID: 7893514564675074045, guid: 61aaafe12275b4522ae68906d8a7a95f, type: 3}
+    size: {x: 0.41001922, y: 0.64197516, z: 0.40919143}
+    center: {x: -0.00031666458, y: 0.32098904, z: -0.00030444562}
+  - id: propmat/steel_frame_shelves_01
+    asset: {fileID: 2100000, guid: 2be5450874dfc48b0ba531dfa8acb7ec, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/steel_frame_shelves_01
+    asset: {fileID: 7171899144060048893, guid: 2d3efce0f87c942da97327df23e2df01, type: 3}
+    size: {x: 1.0974149, y: 2.1405013, z: 0.50211793}
+    center: {x: -0.000020861626, y: 1.0691828, z: -0.00000011920929}
+  - id: propmat/street_lamp_01
+    asset: {fileID: 2100000, guid: aa96bcce7da614085861fb70cd1ff888, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/street_lamp_01
+    asset: {fileID: 6137026261224721402, guid: 4b9bfa3f3540543be853aa9d7750a25c, type: 3}
+    size: {x: 0.7043362, y: 3.8705559, z: 0.38649365}
+    center: {x: 0, y: 1.9352779, z: -0.00000022351742}
+  - id: propmat/Television_01
+    asset: {fileID: 2100000, guid: 75580c1709f164cd686e3bbb1cd65aa2, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/Television_01
+    asset: {fileID: 2898694178114009971, guid: aa2a3e964e0454219bb298e787a0605a, type: 3}
+    size: {x: 0.59999996, y: 0.45684898, z: 0.47081068}
+    center: {x: 0, y: 0.22840895, z: -0.022961214}
+  - id: propmat/trashbag
+    asset: {fileID: 2100000, guid: ff25fe0e91e1141a5b7a4fe26c9f3a18, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/trashbag
+    asset: {fileID: 3680250682320991236, guid: 0685b55a31b4a4a81a0dfbda066aca8e, type: 3}
+    size: {x: 0.52807003, y: 0.5749996, z: 0.46289316}
+    center: {x: -0.0035645366, y: 0.28604558, z: -0.008373365}
+  - id: propmat/utility_box_01
+    asset: {fileID: 2100000, guid: 880076812e37e4c208468f36b3c45d27, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/utility_box_01
+    asset: {fileID: 1637855403414099454, guid: 2a3af17dfd9a54955b72e889d1c0d44c, type: 3}
+    size: {x: 0.52000016, y: 1.1203336, z: 0.43200016}
+    center: {x: 0, y: 0.5601668, z: 0.0059999377}
+  - id: propmat/vintage_electric_kettle
+    asset: {fileID: 2100000, guid: 3044b8283e7ff4b2aa708baf7958cec5, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/vintage_electric_kettle
+    asset: {fileID: 8598540054222444998, guid: b9f457a330ed44941a494ae201047dab, type: 3}
+    size: {x: 0.32089072, y: 0.30474007, z: 0.24855308}
+    center: {x: 0.0045045614, y: 0.15237002, z: -0.000000014901161}
+  - id: propmat/wall_clock
+    asset: {fileID: 2100000, guid: 12c66290437ac4f31b9a410dadfc3427, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/wall_clock
+    asset: {fileID: 4534288406377825308, guid: 06579dd35b8f84371a7c4c04a53891c1, type: 3}
+    size: {x: 0.320491, y: 0.32049105, z: 0.047223136}
+    center: {x: 0, y: 0, z: 0.023611533}
+  - id: prop/wall_clock#0
+    asset: {fileID: 4534288406377825308, guid: 06579dd35b8f84371a7c4c04a53891c1, type: 3}
+    size: {x: 0.320491, y: 0.32049105, z: 0.047223136}
+    center: {x: 0, y: 0.0000000028147136, z: 0.023611533}
+  - id: prop/wall_clock#1
+    asset: {fileID: 4534288406377825308, guid: 06579dd35b8f84371a7c4c04a53891c1, type: 3}
+    size: {x: 0.088811114, y: 0.0644241, z: 0.00034550804}
+    center: {x: 0.032228213, y: 0.02237368, z: 0.028173441}
+  - id: prop/wall_clock#2
+    asset: {fileID: 4534288406377825308, guid: 06579dd35b8f84371a7c4c04a53891c1, type: 3}
+    size: {x: 0.117865145, y: 0.0758918, z: 0.00034487495}
+    center: {x: -0.041566025, y: 0.026165329, z: 0.029122883}
+  - id: prop/wall_clock#3
+    asset: {fileID: 4534288406377825308, guid: 06579dd35b8f84371a7c4c04a53891c1, type: 3}
+    size: {x: 0.029979285, y: 0.1612707, z: 0.0061371885}
+    center: {x: -0.0077682524, y: -0.052129626, z: 0.028220778}
+  - id: propmat/water_manhole_cover
+    asset: {fileID: 2100000, guid: 05aa65600e405495c8e7e0f2b1f8e38d, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/water_manhole_cover
+    asset: {fileID: 8886645415245034895, guid: 1227babfc3cd5433fb587ce4647874f7, type: 3}
+    size: {x: 0.6907605, y: 0.067617886, z: 0.69076055}
+    center: {x: 0, y: 0.0050475243, z: 0}
+  - id: prop/water_manhole_cover#0
+    asset: {fileID: 8886645415245034895, guid: 1227babfc3cd5433fb587ce4647874f7, type: 3}
+    size: {x: 0.6095455, y: 0.024560457, z: 0.59983385}
+    center: {x: 0, y: 0.026576236, z: -0.0000000031681338}
+  - id: prop/water_manhole_cover#1
+    asset: {fileID: 8886645415245034895, guid: 1227babfc3cd5433fb587ce4647874f7, type: 3}
+    size: {x: 0.6907605, y: 0.06754112, z: 0.69076055}
+    center: {x: 0, y: 0.0050091427, z: -5.9713623e-10}
+  - id: propmat/wooden_crate_01
+    asset: {fileID: 2100000, guid: fa33358e1f1bf4156a919299b93b8203, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/wooden_crate_01
+    asset: {fileID: 564711809851829801, guid: d709b4a259918492fa3770105192ccc3, type: 3}
+    size: {x: 0.82527286, y: 0.34961838, z: 0.40895385}
+    center: {x: 0, y: 0.1668758, z: 0.008337244}
+  - id: prop/wooden_crate_01#0
+    asset: {fileID: 564711809851829801, guid: d709b4a259918492fa3770105192ccc3, type: 3}
+    size: {x: 0.82527286, y: 0.3219085, z: 0.40831035}
+    center: {x: 0, y: 0.15302086, z: 0.008658977}
+  - id: prop/wooden_crate_01#1
+    asset: {fileID: 564711809851829801, guid: d709b4a259918492fa3770105192ccc3, type: 3}
+    size: {x: 0.025714878, y: 0.09669624, z: 0.07585628}
+    center: {x: 0.0032135164, y: 0.28744197, z: 0.16917549}
+  - id: prop/wooden_crate_01#2
+    asset: {fileID: 564711809851829801, guid: d709b4a259918492fa3770105192ccc3, type: 3}
+    size: {x: 0.70781934, y: 0.042222634, z: 0.39227927}
+    center: {x: 0, y: 0.3205737, z: -0.000000038215354}
+  - id: propmat/wooden_crate_02
+    asset: {fileID: 2100000, guid: fbed180111af24d65be2bf5a8c218f12, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/wooden_crate_02
+    asset: {fileID: 5244590149917405612, guid: eac4db398ae194eb89995acce93aa04e, type: 3}
+    size: {x: 1.1663258, y: 0.46395457, z: 0.529101}
+    center: {x: -0.00018036366, y: 0.22215362, z: -0.00018045306}
+  - id: prop/wooden_crate_02#0
+    asset: {fileID: 5244590149917405612, guid: eac4db398ae194eb89995acce93aa04e, type: 3}
+    size: {x: 1.1663258, y: 0.44528106, z: 0.529101}
+    center: {x: -0.00018034858, y: 0.21281686, z: -0.00018045156}
+  - id: prop/wooden_crate_02#1
+    asset: {fileID: 5244590149917405612, guid: eac4db398ae194eb89995acce93aa04e, type: 3}
+    size: {x: 1.039993, y: 0.06725876, z: 0.4786275}
+    center: {x: -0.00018044095, y: 0.4205015, z: 0.0000029020011}
+  - id: propmat/wooden_ladder_02
+    asset: {fileID: 2100000, guid: d2e8bf6c27c0c4169b68d12df168400f, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/wooden_ladder_02
+    asset: {fileID: 8387775553872452773, guid: 7eec1c2c1471a4cdda372b8f1b1c10b7, type: 3}
+    size: {x: 0.9895061, y: 1.7221801, z: 0.61813825}
+    center: {x: 0.042334795, y: 0.85947436, z: -0.0030416846}
+  - id: propmat/wooden_stool_01
+    asset: {fileID: 2100000, guid: e5dbc9bbedcba42a8ac2231439e7e844, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/wooden_stool_01
+    asset: {fileID: 8322283768382200747, guid: 96ba60f428aa042b9aaa7d484f15c8fb, type: 3}
+    size: {x: 0.42535514, y: 0.43735266, z: 0.44236284}
+    center: {x: 0, y: 0.21871309, z: -0.000000029802322}
+  - id: propmat/wooden_table_02
+    asset: {fileID: 2100000, guid: d4a6c52ade7a24f4dba32ba2426b8bf2, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: prop/wooden_table_02
+    asset: {fileID: 5145787414987000842, guid: 4249616eaca8f48db97265ba32737508, type: 3}
+    size: {x: 1.1344167, y: 0.7995428, z: 0.7060249}
+    center: {x: -0.00000011920929, y: 0.3996462, z: -0.000000059604645}
+  - id: char/Dog
+    asset: {fileID: 8075978041453937383, guid: 8e9e973be31484fcba5331f568750fe2, type: 3}
+    size: {x: 0.3092419, y: 0.6171986, z: 0.7618293}
+    center: {x: 0.0000004917383, y: 0.30300343, z: 0.021458536}
+  - id: char/Player
+    asset: {fileID: 7134348672667701097, guid: cc962df34e8d44abc97a89b3b38cebaa, type: 3}
+    size: {x: 1.3891282, y: 1.8404665, z: 0.36291507}
+    center: {x: -0.00000017881393, y: 0.9169926, z: 0.030014694}
+  - id: char/ResidentA
+    asset: {fileID: 6075622778419744275, guid: 5de769728fee04c0eaa060ea92d1d72b, type: 3}
+    size: {x: 1.2253228, y: 1.7582891, z: 0.37945345}
+    center: {x: 0.00000023841858, y: 0.8752387, z: -0.04315926}
+  - id: char/ResidentB
+    asset: {fileID: 6536655567185371438, guid: 03b99ea00fc364d928b866ae65bca316, type: 3}
+    size: {x: 1.3759435, y: 1.8120515, z: 0.3657189}
+    center: {x: -0.00000011920929, y: 0.90302104, z: 0.031649113}
+  - id: char/Stranger
+    asset: {fileID: 7410437702185420325, guid: b414e2876fc694f93b147e8b66880a82, type: 3}
+    size: {x: 1.3842143, y: 1.83215, z: 0.36309218}
+    center: {x: -0.00000011920929, y: 0.911612, z: 0.025280043}
+  - id: char/Woman
+    asset: {fileID: 6035172797797533973, guid: 4844a19b348b842dba09847c38225618, type: 3}
+    size: {x: 1.2317439, y: 1.7887915, z: 0.39315268}
+    center: {x: 0.0013489127, y: 0.88854307, z: -0.06593783}
+  - id: char/Zhou
+    asset: {fileID: 2393044640028693831, guid: 010385dc5da3f40969713b7628c9df6e, type: 3}
+    size: {x: 1.3759438, y: 1.8338586, z: 0.45082355}
+    center: {x: -0.00000011920929, y: 0.9138575, z: 0.012025699}
+  - id: clip/f_gestic_talk_neutral_01
+    asset: {fileID: 1827226128182048838, guid: b63a14f70ceb346f2bc9764b1ec51d99, type: 3}
+    size: {x: 27.333334, y: 0, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/f_idle_nervous_01
+    asset: {fileID: 1827226128182048838, guid: 67339d374c27046f9a8492281f5bfa76, type: 3}
+    size: {x: 46.166668, y: 0, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/f_idle_neutral_01
+    asset: {fileID: 1827226128182048838, guid: 0a1e11b3b497549b8a3cd490dada10ac, type: 3}
+    size: {x: 15.533334, y: 0, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/f_run_fast_01
+    asset: {fileID: 1827226128182048838, guid: eddbad34c1f28426ab2a1941ba3aa221, type: 3}
+    size: {x: 0.70000005, y: 5.15766, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/f_run_neutral
+    asset: {fileID: 1827226128182048838, guid: 120366cba58594772b431f2ba4e2668b, type: 3}
+    size: {x: 0.8333334, y: 3.0372891, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/f_walk_neutral
+    asset: {fileID: 1827226128182048838, guid: 1ce5eef74721149218b681801c1a2e6b, type: 3}
+    size: {x: 1.2333333, y: 1.2340899, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/m_crouch_idle
+    asset: {fileID: 1827226128182048838, guid: 524435e3ed5d845199f528c63cdc4056, type: 3}
+    size: {x: 6.866667, y: 0, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/m_gestic_talk_neutral_01
+    asset: {fileID: 1827226128182048838, guid: 47d9c5445b0b2456f866b390782fe8bb, type: 3}
+    size: {x: 35.56667, y: 0, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/m_idle_drunk_01
+    asset: {fileID: 1827226128182048838, guid: 6f53ef8b9ffbf477985e8f3ebc503c38, type: 3}
+    size: {x: 43.633335, y: 0, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/m_idle_look_around_01
+    asset: {fileID: 1827226128182048838, guid: 0975780d162274ec9a561d1e8448ca43, type: 3}
+    size: {x: 4.6333337, y: 0, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/m_idle_nervous_01
+    asset: {fileID: 1827226128182048838, guid: fa76f1eeaedf8406faf494619718af46, type: 3}
+    size: {x: 30.900002, y: 0, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/m_idle_neutral_01
+    asset: {fileID: 1827226128182048838, guid: 45f6a479703c1475687f2946e29cdbf6, type: 3}
+    size: {x: 11.666667, y: 0, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/m_run_fast_01
+    asset: {fileID: 1827226128182048838, guid: 51780aa5777d94f0d86de420aadec2f2, type: 3}
+    size: {x: 0.6, y: 5.575229, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/m_run_injured
+    asset: {fileID: 1827226128182048838, guid: 586d154f883b54ba99ca7ac7ae1b17ba, type: 3}
+    size: {x: 0.6666667, y: 3.266722, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/m_run_neutral
+    asset: {fileID: 1827226128182048838, guid: d71eecc255c6f45789cc6b3cd1358d5e, type: 3}
+    size: {x: 0.7666667, y: 2.9427867, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/m_walk_bruised
+    asset: {fileID: 1827226128182048838, guid: 2111b780b03644b5da2bf03eefe6f1b5, type: 3}
+    size: {x: 2.5333335, y: 0.68442714, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/m_walk_drunk
+    asset: {fileID: 1827226128182048838, guid: c2dfda3c770164390b3a3dd3e932174c, type: 3}
+    size: {x: 2.5000002, y: 0.79931545, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/m_walk_neutral
+    asset: {fileID: 1827226128182048838, guid: f4c23ff78d4b8436bae54549190a3a68, type: 3}
+    size: {x: 1.0666667, y: 1.366986, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/m_work_mid
+    asset: {fileID: 1827226128182048838, guid: 975e28ae0f04742d5a1e22d37656fad0, type: 3}
+    size: {x: 11.633334, y: 0, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: clip/m_work_table
+    asset: {fileID: 1827226128182048838, guid: 701d9c641042e45ae857f01608efd185, type: 3}
+    size: {x: 11.3, y: 0, z: 1}
+    center: {x: 0, y: 0, z: 0}
+  - id: sky
+    asset: {fileID: 8900000, guid: e7d07a42357094fd69906e62c6e29220, type: 3}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: skysamples
+    asset: {fileID: 4900000, guid: d1c662471306348aaa20b72436010b0d, type: 3}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: mat/sky
+    asset: {fileID: 2100000, guid: 04b9d450ab67c4d0ca3e13fbbfa1aa52, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: look
+    asset: {fileID: 11400000, guid: fb701e72378274e669b2d658665a7944, type: 2}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: font/sans
+    asset: {fileID: 12800000, guid: 9817e7a18a1dc427899a541f9db66efd, type: 3}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  - id: font/serif
+    asset: {fileID: 12800000, guid: c3ad18353d14d4309921b36ef11f37a6, type: 3}
+    size: {x: 0, y: 0, z: 0}
+    center: {x: 0, y: 0, z: 0}
+  ambient:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
