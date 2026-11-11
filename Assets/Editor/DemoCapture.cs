@@ -15,6 +15,7 @@ namespace DontForgetMe.Editor
         [MenuItem("Dont Forget Me/Validate/Run Scripted Walkthrough")]
         public static void Run()
         {
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DFM_SHOTS")))
                 Environment.SetEnvironmentVariable("DFM_SHOTS", System.IO.Path.GetFullPath("Logs/Walkthrough"));
             EditorSceneManager.OpenScene("Assets/Scenes/Opening.unity");
