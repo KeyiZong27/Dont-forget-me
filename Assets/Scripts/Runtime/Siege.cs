@@ -30,8 +30,12 @@ namespace DontForgetMe
         private float nextAssign;
         private float nextGrowl;
         private float nextGateSound;
-        private float nextMoan;
         private bool surged;
+        private readonly List<float> reinforcements = new List<float>();
+
+        // Bodies the alley will hold in all, standing or not.
+        private const int Most = 14;
+        public int FallenCount { get; private set; }
         private Transform keeper;
 
         public void Configure(DemoGame owner)
@@ -72,6 +76,7 @@ namespace DontForgetMe
             hostile.Pace = Paces[n % Paces.Length];
             hostile.Windup = hostile.Pace > 3f ? 0.5f : 0.62f + (n * 17 % 5) * 0.04f;
             hostile.Configure(this, motor);
+            hostile.Toughen(85f + (n * 43 % 7) * 8f);
             hostiles.Add(hostile);
             return hostile;
         }
@@ -128,6 +133,7 @@ namespace DontForgetMe
             {
                 for (int i = 0; i < WaveSize[wave]; i++) Enter();
                 wave++;
+                if (wave >= 2) game.Scream(game.ResidentA);
                 if (wave == 2) game.Caption("她：不止一个！巷口又进来了！", 4);
                 else if (wave == 4) game.Caption("街坊：越来越多了……门还要多久？！", 4);
             }
@@ -136,11 +142,20 @@ namespace DontForgetMe
                 nextAssign = Time.time + 0.4f;
                 Assign();
             }
-            if (Time.time >= nextMoan && hostiles.Count > 0)
+            // For each one put down, another comes in from the street.
+            for (int i = reinforcements.Count - 1; i >= 0; i--)
             {
-                nextMoan = Time.time + Random.Range(1.6f, 3.4f);
-                game.Growl(hostiles[Random.Range(0, hostiles.Count)].transform.position, 0.5f);
+                if (Time.time < reinforcements[i]) continue;
+                reinforcements.RemoveAt(i);
+                if (hostiles.Count < Most) Enter();
             }
+        }
+
+        public void Fell(Hostile hostile)
+        {
+            FallenCount++;
+            if (!Shut && hostiles.Count + reinforcements.Count < Most) reinforcements.Add(Time.time + 3.5f);
+            game.HostileFell(FallenCount);
         }
 
         private void Assign()
@@ -148,6 +163,7 @@ namespace DontForgetMe
             for (int i = 0; i < taken.Count; i++) taken[i] = 0;
             foreach (Hostile hostile in hostiles)
             {
+                if (hostile.Fallen) continue;
                 Transform grudge = hostile.Grudge;
                 int held = grudge != null && Wanted(grudge) ? prey.IndexOf(grudge) : -1;
                 if (held < 0) continue;
@@ -156,7 +172,7 @@ namespace DontForgetMe
             }
             foreach (Hostile hostile in hostiles)
             {
-                if (hostile.State == Hostile.Mode.Pound) continue;
+                if (hostile.State == Hostile.Mode.Pound || hostile.Fallen) continue;
                 if (hostile.Grudge != null && Wanted(hostile.Grudge) && prey.Contains(hostile.Grudge)) continue;
                 int best = prey.IndexOf(keeper != null ? keeper : game.Player.transform);
                 float bestScore = float.MaxValue;
@@ -205,7 +221,7 @@ namespace DontForgetMe
             float bestDistance = within;
             foreach (Hostile hostile in hostiles)
             {
-                if (dangerousOnly && !hostile.Dangerous) continue;
+                if (hostile.Fallen || (dangerousOnly && !hostile.Dangerous)) continue;
                 float distance = Flat(hostile.transform.position - point).magnitude;
                 if (distance >= bestDistance) continue;
                 bestDistance = distance;
@@ -236,8 +252,39 @@ namespace DontForgetMe
         public bool AnyBeyond(float z)
         {
             foreach (Hostile hostile in hostiles)
-                if (hostile.transform.position.z > z) return true;
+                if (!hostile.Fallen && hostile.transform.position.z > z) return true;
             return false;
+        }
+
+        // A blow with something picked up. Whoever is nearest in front takes the whole of it; anyone
+        // else inside the arc is caught by less. Returns how many were hit.
+        public int Strike(Vector3 origin, Vector3 forward, Weapon weapon, float strength, Transform by)
+        {
+            forward = Flat(forward).normalized;
+            Hostile first = null;
+            float nearest = float.MaxValue;
+            List<Hostile> caught = new List<Hostile>();
+            foreach (Hostile hostile in hostiles)
+            {
+                if (hostile.Fallen) continue;
+                Vector3 to = Flat(hostile.transform.position - origin);
+                float distance = to.magnitude;
+                if (distance > weapon.Reach || (distance > 0.4f && Vector3.Angle(forward, to) > 60f)) continue;
+                caught.Add(hostile);
+                if (distance >= nearest) continue;
+                nearest = distance;
+                first = hostile;
+            }
+            foreach (Hostile hostile in caught)
+            {
+                Vector3 to = Flat(hostile.transform.position - origin);
+                Vector3 direction = to.sqrMagnitude > 0.0025f ? (to.normalized + forward * 0.6f).normalized : forward;
+                float share = hostile == first ? 1f : 0.4f;
+                hostile.Shoved(direction, weapon.Power * Mathf.Lerp(0.6f, 1f, share), by);
+                hostile.Hurt(weapon.Damage * strength * share);
+            }
+            if (first != null) game.Impact(weapon, first.transform.position);
+            return caught.Count;
         }
 
         // Everyone in front of "origin" within arm's reach is driven back. Returns how many.
@@ -247,14 +294,16 @@ namespace DontForgetMe
             int struck = 0;
             foreach (Hostile hostile in hostiles)
             {
+                if (hostile.Fallen) continue;
                 Vector3 to = Flat(hostile.transform.position - origin);
                 float distance = to.magnitude;
                 if (distance > reach || (distance > 0.4f && Vector3.Angle(forward, to) > halfAngle)) continue;
                 Vector3 direction = distance > 0.05f ? (to / distance + forward * 0.6f).normalized : forward;
                 hostile.Shoved(direction, power * Mathf.Lerp(1f, 0.8f, distance / reach), by);
+                hostile.Hurt(3f);
                 struck++;
             }
-            if (struck > 0) game.Thud(origin + forward * 0.8f, 0.75f);
+            if (struck > 0) game.Impact(null, origin + forward * 0.8f);
             return struck;
         }
 
@@ -264,11 +313,10 @@ namespace DontForgetMe
             if (power < 0.5f) return;
             foreach (Hostile other in hostiles)
             {
-                if (other == source || other.State == Hostile.Mode.Reel || other.State == Hostile.Mode.Down) continue;
+                if (other == source || other.State == Hostile.Mode.Reel || other.State == Hostile.Mode.Down || other.Fallen) continue;
                 Vector3 to = Flat(other.transform.position - source.transform.position);
                 if (to.magnitude > 0.74f || Vector3.Dot(to, direction) < -0.1f) continue;
                 other.Shoved(direction, power * 0.55f, null);
-                game.Thud(other.transform.position, 0.45f);
             }
         }
 
@@ -285,22 +333,25 @@ namespace DontForgetMe
                 if (companion != null) companion.Struck(by);
                 game.CompanionStruck(victim);
             }
-            game.Thud(victim.position, 0.8f);
         }
 
-        // As the leaf slides shut, whoever is in the gateway is driven back out of it.
+        // As the leaf slides shut, whoever is in the gateway is driven back out of it, and
+        // anyone lying across the rail is pushed clear.
         public void ClearGateway(float power)
         {
             foreach (Hostile hostile in hostiles)
-                if (hostile.transform.position.z > 47.2f && hostile.State != Hostile.Mode.Reel)
+            {
+                float z = hostile.transform.position.z;
+                if (hostile.Fallen ? z > 47.6f && z < 50.6f : z > 47.2f && hostile.State != Hostile.Mode.Reel)
                     hostile.Shoved(Vector3.back, power, null);
+            }
         }
 
         // The gate is shut. The nearest take the front and beat on it; the rest press in behind.
         public void GateShut()
         {
             Shut = true;
-            List<Hostile> order = new List<Hostile>(hostiles);
+            List<Hostile> order = hostiles.FindAll(hostile => !hostile.Fallen);
             order.Sort((a, b) => b.transform.position.z.CompareTo(a.transform.position.z));
             for (int i = 0; i < order.Count; i++)
             {
@@ -310,16 +361,12 @@ namespace DontForgetMe
             }
         }
 
+        // The breath they heave in before throwing themselves forward.
         public void Growl(Vector3 at)
         {
             if (Time.time < nextGrowl) return;
             nextGrowl = Time.time + 0.5f;
-            game.Growl(at, 0.8f);
-        }
-
-        public void Thud(Vector3 at, float volume)
-        {
-            game.Thud(at, volume);
+            game.Rasp(at, 0.9f);
         }
 
         public void GateStruck(Vector3 mark)

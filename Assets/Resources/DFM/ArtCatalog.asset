@@ -925,14 +925,6 @@ MonoBehaviour:
     asset: {fileID: 1827226128182048838, guid: 701d9c641042e45ae857f01608efd185, type: 3}
     size: {x: 11.3, y: 0, z: 1}
     center: {x: 0, y: 0, z: 0}
-  - id: sky
-    asset: {fileID: 8900000, guid: e7d07a42357094fd69906e62c6e29220, type: 3}
-    size: {x: 0, y: 0, z: 0}
-    center: {x: 0, y: 0, z: 0}
-  - id: skysamples
-    asset: {fileID: 4900000, guid: d1c662471306348aaa20b72436010b0d, type: 3}
-    size: {x: 0, y: 0, z: 0}
-    center: {x: 0, y: 0, z: 0}
   - id: mat/sky
     asset: {fileID: 2100000, guid: 04b9d450ab67c4d0ca3e13fbbfa1aa52, type: 2}
     size: {x: 0, y: 0, z: 0}

@@ -177,14 +177,13 @@ namespace DontForgetMe
 
         // Holds the camera still and compares consecutive frames in coarse blocks. Film grain and
         // sub-pixel jitter average out inside a block; a shadow that jumps or two surfaces fighting
-        // for the same depth do not. People and the interface are hidden for the half second it
-        // takes, so that only the scenery is compared. The block that changed most is reported
-        // with its position, bottom-left being 0% 0%.
+        // for the same depth do not. People, their shadows and the interface are hidden for the half
+        // second it takes, so that only the scenery is compared. The block that changed most is
+        // reported with its position, bottom-left being 0% 0%.
         private IEnumerator Steady(string name, float yaw, float pitch)
         {
             const int cols = 32, rows = 20, frames = 8;
-            // Moving shadows of the people who are hidden reach about 5%; surfaces fighting over the
-            // same depth measured 20% and more.
+            // Still scenery measures under 3%; surfaces fighting over the same depth measured 20% and more.
             const float limit = 0.1f;
             // Without a display the pictures are rendered offscreen, and that path is not steady
             // from frame to frame by itself (successive renders differ in how blurred they are),
@@ -210,6 +209,16 @@ namespace DontForgetMe
             int mask = view.cullingMask;
             view.cullingMask = mask & ~(1 << 8);
             hud.enabled = false;
+            // Hidden people would still throw shadows, and with the sun this low those are long.
+            List<Renderer> casters = new List<Renderer>();
+            List<UnityEngine.Rendering.ShadowCastingMode> cast = new List<UnityEngine.Rendering.ShadowCastingMode>();
+            foreach (Renderer renderer in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (renderer.gameObject.layer != 8 || renderer.shadowCastingMode == UnityEngine.Rendering.ShadowCastingMode.Off) continue;
+                casters.Add(renderer);
+                cast.Add(renderer.shadowCastingMode);
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
             // Long enough for temporal anti-aliasing to forget the people it was just drawing.
             for (int i = 0; i < 20; i++) yield return null;
             float[] low = new float[cols * rows], high = new float[cols * rows];
@@ -241,6 +250,8 @@ namespace DontForgetMe
             }
             view.cullingMask = mask;
             hud.enabled = true;
+            for (int i = 0; i < casters.Count; i++)
+                if (casters[i] != null) casters[i].shadowCastingMode = cast[i];
             int worst = 0, unsteady = 0;
             for (int b = 0; b < low.Length; b++)
             {
@@ -392,7 +403,15 @@ namespace DontForgetMe
             // Hold the line: go for whoever is on old Zhou or closest, shove when they are in reach.
             // Halfway through, stand back for a few seconds, the way a player who loses track of
             // the crowd would, to see what happens to the gate work when nobody covers for it.
-            bool pushed = false, crowded = false, stalled = false, idled = false;
+            // First, as anyone would: snatch something up out of the rubbish to hit with.
+            player.TryPush();
+            patience = Time.time + 4f;
+            while (Time.time < patience && (player.Held == null || player.Busy)) yield return null;
+            if (player.Held == null) Problem("found nothing in the rubbish to fight with");
+            else Note("picked up: " + player.Held.Name + " (damage " + player.Held.Damage + ")");
+            yield return Shot("armed", 150, 12, 3);
+
+            bool pushed = false, crowded = false, stalled = false, idled = false, down = false;
             float idleUntil = -1f;
             Vector3 home = new Vector3(0.1f, 0, 46.1f), aside = new Vector3(-0.7f, 0, 46.6f);
             float began = Time.time;
@@ -414,13 +433,16 @@ namespace DontForgetMe
                 else if (urgent != null)
                 {
                     Vector3 to = Flat(urgent.transform.position - player.transform.position);
-                    waypoint = to.magnitude > 1.25f ? urgent.transform.position - to.normalized : (Vector3?)null;
-                    if (to.magnitude < 1.45f && player.TryPush() && !pushed)
+                    float reach = player.Held != null ? player.Held.Reach - 0.3f : 1.45f;
+                    waypoint = to.magnitude > reach - 0.2f ? urgent.transform.position - to.normalized : (Vector3?)null;
+                    if (to.magnitude < reach && player.TryPush() && !pushed && player.Held != null)
                     {
                         pushed = true;
                         waypoint = null;
-                        yield return new WaitForSeconds(0.17f);
-                        yield return Shot("push", float.NaN, 8, 1);
+                        yield return new WaitForSeconds(0.12f);
+                        yield return Shot("windup", float.NaN, 8, 1);
+                        yield return new WaitForSeconds(0.14f);
+                        yield return Shot("strike", float.NaN, 8, 1);
                         yield return new WaitForSeconds(0.3f);
                         yield return Shot("reeling", float.NaN, 8, 1);
                     }
@@ -431,6 +453,13 @@ namespace DontForgetMe
                     stalled = true;
                     Note("gate work interrupted at " + game.State.RepairProgress.ToString("P0") + ", health " + player.Health.ToString("F0"));
                     yield return Shot("zhou_grabbed", 0, 10, 2);
+                }
+                if (!down && game.Siege.FallenCount > 0)
+                {
+                    down = true;
+                    Note("first one down at " + game.State.RepairProgress.ToString("P0"));
+                    yield return new WaitForSeconds(1.2f);
+                    yield return Shot("one_down", 180, 14, 2);
                 }
                 if (!crowded && game.Siege.Hostiles.Count >= 6 && game.State.RepairProgress > 0.72f)
                 {
@@ -444,8 +473,21 @@ namespace DontForgetMe
             waypoint = null;
             if (game.State.Phase != OpeningPhase.Regroup) Problem("gate was never opened; phase is " + game.State.Phase + ", progress " + game.State.RepairProgress);
             if (!stalled) Note("the gate work was never interrupted in this run");
-            Note("gate opened after " + (Time.time - began).ToString("F0") + " s of holding, with " + game.Siege.Hostiles.Count + " in the alley, "
-                + player.ShovesLanded + " shoves landed, health " + player.Health.ToString("F0"));
+            float dealt = 0;
+            foreach (Hostile hostile in game.Siege.Hostiles) dealt += hostile.MaxHealth - hostile.Health;
+            Note("gate opened after " + (Time.time - began).ToString("F0") + " s of holding: " + game.Siege.Hostiles.Count + " came into the alley, "
+                + game.Siege.FallenCount + " went down, " + dealt.ToString("F0") + " damage dealt in all, " + player.ShovesLanded
+                + " of the player's blows landed, health " + player.Health.ToString("F0"));
+            string hands = "";
+            foreach (ActorMotor actor in new[] { game.ResidentB, game.Woman, game.Zhou })
+                hands += actor.Identity + " " + (actor.Body.Carried != null ? actor.Body.Carried.Name : "nothing") + "  ";
+            Note("in their hands: " + hands);
+            if (dealt <= 0) Problem("nobody was hurt by anything that hit them");
+            if (game.ResidentB.Body.Carried == null && game.Woman.Body.Carried == null) Problem("neither of the two who fight picked anything up");
+            Note("heard so far in the fight: " + game.Beats + " heartbeats, " + game.Breaths + " breaths, " + game.Blows + " blows, " + game.Cries
+                + " cries; quietest cry played at " + game.QuietestCry.ToString("F2") + ", loudest of anything else at " + game.LoudestOther.ToString("F2"));
+            if (game.Beats == 0 || game.Breaths == 0 || game.Blows == 0 || game.Cries == 0) Problem("one of the four fight sounds was never played");
+            if (game.QuietestCry <= game.LoudestOther) Problem("a cry was not the loudest sound in the fight");
             yield return Shot("gate_open", 0, 8, 3);
             yield return Walk(new Vector3(0.2f, 0, 47.2f), 0.5f, 8, true);
             yield return Walk(new Vector3(0.1f, 0, 50.8f), 0.5f, 8, true);
@@ -462,13 +504,13 @@ namespace DontForgetMe
                 player.Yaw = Mathf.LerpAngle(player.Yaw, 180, 0.08f);
                 Hostile intruder = null;
                 foreach (Hostile hostile in game.Siege.Hostiles)
-                    if (hostile.transform.position.z > 50.6f
+                    if (!hostile.Fallen && hostile.transform.position.z > 50.6f
                         && (intruder == null || hostile.transform.position.z > intruder.transform.position.z)) intruder = hostile;
                 if (intruder != null)
                 {
                     Vector3 to = Flat(intruder.transform.position - player.transform.position);
                     waypoint = to.magnitude > 1.25f || to.z > 0 ? intruder.transform.position + Vector3.forward : (Vector3?)null;
-                    if (to.magnitude < 1.45f && to.z < 0) player.TryPush();
+                    if (to.magnitude < (player.Held != null ? player.Held.Reach - 0.3f : 1.45f) && to.z < 0) player.TryPush();
                 }
                 else waypoint = Flat(clear - player.transform.position).magnitude > 0.5f ? clear : (Vector3?)null;
                 if (!closingShot && Mathf.Abs(game.Gate.transform.position.x) < 1.6f && Mathf.Abs(game.Gate.transform.position.x) > 0.3f)
@@ -481,7 +523,7 @@ namespace DontForgetMe
             waypoint = null;
             if (!game.GateShut) Problem("the gate never shut: " + Where());
             foreach (Hostile hostile in game.Siege.Hostiles)
-                if (game.GateShut && hostile.transform.position.z > 48.6f) Problem(hostile.name + " was shut in on our side of the gate");
+                if (game.GateShut && !hostile.Fallen && hostile.transform.position.z > 48.6f) Problem(hostile.name + " was shut in on our side of the gate");
             yield return new WaitForSeconds(2.5f);
             yield return Shot("gate_shut", 180, 6);
             yield return Walk(game.Zhou.transform.position + new Vector3(0.9f, 0, -1.1f), 0.6f, 15);

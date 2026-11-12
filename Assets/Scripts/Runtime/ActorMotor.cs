@@ -129,6 +129,7 @@ namespace DontForgetMe
         private Crowd.Body body;
         private float verticalSpeed;
         private bool stopped;
+        private bool collapsed;
         private bool resting;
         private Vector3 velocity;
         private Vector3 thrown;
@@ -187,6 +188,14 @@ namespace DontForgetMe
             FollowTarget = null;
             HasDestination = false;
             stopped = true;
+        }
+
+        // Goes down and stays down: no longer steers, and no longer takes up room among the others.
+        public void Collapse()
+        {
+            Stop();
+            collapsed = true;
+            Crowd.Leave(body);
         }
 
         // Thrown by a shove or a blow: the body travels with that velocity, bleeding it off,
@@ -277,14 +286,14 @@ namespace DontForgetMe
             verticalSpeed = controller.isGrounded ? -2f : verticalSpeed - 20f * Time.deltaTime;
             Vector3 before = transform.position;
             CollisionFlags flags = controller.Move((velocity + thrown + Vector3.up * verticalSpeed) * Time.deltaTime
-                + Crowd.Push(body, Time.deltaTime));
+                + (collapsed ? Vector3.zero : Crowd.Push(body, Time.deltaTime)));
             HitScenery = (flags & CollisionFlags.Sides) != 0;
             Vector3 moved = transform.position - before;
             moved.y = 0;
             float actual = Time.deltaTime > 0 ? moved.magnitude / Time.deltaTime : 0;
             float shown = Mathf.Min(actual, (velocity + thrown).magnitude + 0.2f);
             bool backwards = shown > 0.25f && Vector3.Dot(moved, transform.forward) < 0;
-            if (Body != null) Body.SetSpeed(shown, backwards);
+            if (Body != null) Body.SetSpeed(collapsed ? 0f : shown, backwards);
             if (DogBody != null) DogBody.SetSpeed(shown);
         }
     }

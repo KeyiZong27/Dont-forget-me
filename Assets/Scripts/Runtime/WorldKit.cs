@@ -122,45 +122,6 @@ namespace DontForgetMe
 
         public static Font SignFont => Get<Font>("font/sans");
 
-        // The sky's diffuse contribution, rebuilt from coarse samples of the same HDR image the
-        // skybox uses, so ambient light matches what is visible overhead in editor and builds alike.
-        public static SphericalHarmonicsL2 SkyAmbient(float intensity)
-        {
-            string[] lines = Get<TextAsset>("skysamples").text.Split('\n');
-            List<Vector3> directions = new List<Vector3>();
-            List<Vector3> colours = new List<Vector3>();
-            SphericalHarmonicsL2 probe = new SphericalHarmonicsL2();
-            foreach (string line in lines)
-            {
-                string[] parts = line.Trim().Split(' ');
-                if (parts.Length != 6) continue;
-                float[] v = new float[6];
-                for (int i = 0; i < 6; i++) v[i] = float.Parse(parts[i], CultureInfo.InvariantCulture);
-                Vector3 direction = new Vector3(v[0], v[1], v[2]);
-                directions.Add(direction);
-                colours.Add(new Vector3(v[3], v[4], v[5]));
-                probe.AddDirectionalLight(direction, new Color(v[3], v[4], v[5]), 1f);
-            }
-            if (directions.Count == 0) throw new InvalidOperationException("Sky sample table is empty.");
-
-            // Normalise against a direct evaluation, so the result does not depend on the
-            // engine's internal scaling convention for lights added to a probe.
-            Vector3[] check = { Vector3.up, Vector3.forward, Vector3.right, Vector3.back, Vector3.left };
-            Color[] evaluated = new Color[check.Length];
-            probe.Evaluate(check, evaluated);
-            float expected = 0, actual = 0;
-            for (int n = 0; n < check.Length; n++)
-            {
-                for (int i = 0; i < directions.Count; i++)
-                {
-                    float cosine = Mathf.Max(0, Vector3.Dot(check[n], directions[i]));
-                    expected += (colours[i].x + colours[i].y + colours[i].z) * cosine;
-                }
-                actual += evaluated[n].r + evaluated[n].g + evaluated[n].b;
-            }
-            return probe * (actual > 1e-5f ? expected / actual * intensity : intensity);
-        }
-
         public static void Release()
         {
             foreach (UnityEngine.Object item in Owned)

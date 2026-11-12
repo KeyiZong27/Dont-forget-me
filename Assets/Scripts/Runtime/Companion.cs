@@ -3,8 +3,9 @@ using UnityEngine;
 namespace DontForgetMe
 {
     // What each of the people on our side does once the alley turns into a fight: one works on
-    // the gate, one stands in the way and shoves, one guards the worker's back, one cannot do
-    // more than crouch against the wall. Nobody here simply stands and waits.
+    // the gate, one stands in the way, one guards the worker's back, one cannot do more than
+    // crouch against the wall. Those who fight first snatch up whatever lies nearest in the
+    // rubbish and hit with that. Nobody here simply stands and waits.
     public sealed class Companion : MonoBehaviour
     {
         public enum Duty { None, Brawl, Guard, Cower, Work }
@@ -28,6 +29,9 @@ namespace DontForgetMe
         private bool settled;
         private bool wasHarassed;
         private float harassedAt;
+        private Weapon wanted;
+        private float armBy;
+        private float strength = 1f;
 
         public void Configure(Siege owner, ActorMotor motor)
         {
@@ -55,6 +59,34 @@ namespace DontForgetMe
             if (role == Duty.None) return;
             Motor.Hurry = role == Duty.Cower;
             Motor.GoTo(where);
+            strength = role == Duty.Guard ? 0.8f : 1f;
+            if ((role == Duty.Brawl || role == Duty.Guard) && body.Carried == null && wanted == null)
+            {
+                wanted = DemoGame.Instance.Reserve(where, 5f, 3);
+                armBy = Time.time + 5f;
+                if (wanted != null) Motor.Hurry = true;
+            }
+        }
+
+        // Goes to the thing picked out of the rubbish, bends for it, and only then takes up the post.
+        private void Arm(CharacterAnimator body)
+        {
+            Vector3 to = Flat(wanted.Root.position - transform.position);
+            bool reached = to.magnitude < 0.95f;
+            if (!reached && Time.time < armBy)
+            {
+                if (!Motor.Reeling) Motor.GoTo(wanted.Root.position - to.normalized * 0.7f);
+                return;
+            }
+            if (reached)
+            {
+                if (wanted.Root.position.y < 0.7f) body.Stance("m_crouch_idle", 0.35f);
+                body.Carry(wanted);
+            }
+            else wanted.Taken = false;
+            wanted = null;
+            Motor.Hurry = false;
+            Motor.GoTo(post);
         }
 
         public void Struck(Hostile by)
@@ -91,7 +123,13 @@ namespace DontForgetMe
             if (contactAt > 0 && Time.time >= contactAt)
             {
                 contactAt = -1f;
-                siege.ShoveFrom(transform.position, transform.forward, 1.6f, 65f, Role == Duty.Guard ? 0.6f : 0.75f, transform);
+                if (body.Carried != null) siege.Strike(transform.position, transform.forward, body.Carried, strength, transform);
+                else siege.ShoveFrom(transform.position, transform.forward, 1.6f, 65f, Role == Duty.Guard ? 0.6f : 0.75f, transform);
+            }
+            if (wanted != null)
+            {
+                Arm(body);
+                return;
             }
             switch (Role)
             {
@@ -163,8 +201,17 @@ namespace DontForgetMe
             Motor.Stop();
             Motor.Facing = at;
             if (to.sqrMagnitude > 0.0025f) transform.rotation = Quaternion.LookRotation(to);
-            body.Shove(at + Vector3.up * 1.3f - to.normalized * 0.14f);
-            contactAt = Time.time + 0.17f;
+            Vector3 contact = at + Vector3.up * 1.3f - to.normalized * 0.14f;
+            if (body.Carried != null)
+            {
+                body.Swing(contact);
+                contactAt = Time.time + 0.27f;
+            }
+            else
+            {
+                body.Shove(contact);
+                contactAt = Time.time + 0.17f;
+            }
             nextShove = Time.time + rest;
         }
 
@@ -195,7 +242,8 @@ namespace DontForgetMe
                 Motor.Facing = threat.transform.position;
             }
 
-            if (distance < 1.4f && Time.time >= nextShove) Heave(body, threat.transform.position, cooldown * Random.Range(0.85f, 1.25f));
+            float reach = body.Carried != null ? body.Carried.Reach - 0.3f : 1.4f;
+            if (distance < reach && Time.time >= nextShove) Heave(body, threat.transform.position, cooldown * Random.Range(0.85f, 1.25f));
         }
     }
 }

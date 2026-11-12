@@ -10,7 +10,8 @@ namespace DontForgetMe
     // a standing clip ("stance") blended with walk, run and sprint cycles by ground speed.
     // On top of the clips sits a small physical layer: the spine can lean and each hand can be
     // placed on a point in the world, which is what shoving, grabbing, carrying, shielding the
-    // head and beating on a door are built from. The library has no clips for any of those.
+    // head, beating on a door and swinging something picked up are built from. The library has
+    // no clips for any of those.
     public sealed class CharacterAnimator : MonoBehaviour
     {
         private sealed class State
@@ -29,7 +30,7 @@ namespace DontForgetMe
             public Vector3 Hint;
         }
 
-        private enum Act { None, Shove, Recoil, Lunge, Flinch }
+        private enum Act { None, Shove, Swing, Recoil, Lunge, Flinch }
 
         public Transform LookTarget { get; set; }
         // How far a walk cycle may be sped up to keep pace before the feet are allowed to slide.
@@ -42,6 +43,7 @@ namespace DontForgetMe
         public float Stoop { get; set; }
         public float HeadTilt { get; set; }
         public bool Acting => act != Act.None;
+        public Weapon Carried { get; private set; }
 
         private readonly List<State> states = new List<State>();
         private readonly Dictionary<string, int> lookup = new Dictionary<string, int>();
@@ -67,6 +69,7 @@ namespace DontForgetMe
         private Action poundImpact;
         private readonly bool[] poundStruck = new bool[2];
         private float pitch, roll;
+        private Vector3 point = Vector3.forward;
 
         public void Configure(Animator target, string idleClip, string walkClip, string runClip, string sprintClip = null)
         {
@@ -149,6 +152,33 @@ namespace DontForgetMe
             Begin(Act.Shove, 0.58f);
             actHasPoint = contact.HasValue;
             if (contact.HasValue) actPoint = contact.Value;
+        }
+
+        // Takes something in the right hand. From then on it follows that hand, and Swing strikes with it.
+        public void Carry(Weapon weapon)
+        {
+            Carried = weapon;
+            weapon.Taken = true;
+            weapon.Root.SetParent(null, true);
+            // Counted with the people from here on: out of reflections, and hidden along with them.
+            OpeningWorld.SetLayer(weapon.Root.gameObject, 8);
+            point = weapon.Root.forward;
+        }
+
+        // Draws the thing carried back over the shoulder and brings it down on the contact point.
+        public void Swing(Vector3? contact = null)
+        {
+            Begin(Act.Swing, 0.68f);
+            actHasPoint = contact.HasValue;
+            if (contact.HasValue) actPoint = contact.Value;
+        }
+
+        // Stops everything where it is: a body that will not move again.
+        public void Freeze()
+        {
+            if (graph.IsValid()) graph.Stop();
+            animator.enabled = false;
+            enabled = false;
         }
 
         // Thrown off balance in a direction: the trunk goes with it and the arms fly out.
@@ -299,6 +329,26 @@ namespace DontForgetMe
                 wantPitch += 14f + tremble * 60f;
             }
 
+            // Something carried: light things hang from the hand, pointing ahead and down; anything
+            // that needs both hands is held across the body.
+            Vector3 wantPoint = point;
+            if (Carried != null)
+            {
+                if (Carried.TwoHanded)
+                {
+                    rightAt = chestAt + forward * 0.3f - up * 0.3f + side * 0.14f;
+                    leftAt = chestAt + forward * 0.34f - up * 0.22f - side * 0.12f;
+                    leftWeight = Mathf.Max(leftWeight, 0.9f);
+                    rightWeight = Mathf.Max(rightWeight, 0.9f);
+                    wantPoint = (up * 0.5f + forward * 0.55f - side * 0.45f).normalized;
+                }
+                else
+                {
+                    Vector3 forearm = (right.Hand.position - right.Lower.position).normalized;
+                    wantPoint = (forearm * 0.6f + forward * 0.65f - up * 0.15f).normalized;
+                }
+            }
+
             if (holdLeft != null) { leftAt = holdLeft(); leftWeight = 1f; }
             if (holdRight != null) { rightAt = holdRight(); rightWeight = 1f; }
             wantPitch += holdLean;
@@ -341,6 +391,36 @@ namespace DontForgetMe
                         else { rightAt = at; rightWeight = Mathf.Max(rightWeight * recover, wind * (1f - recover)); }
                     }
                     wantPitch += Mathf.Lerp(-7f, 24f, thrust) * wind * (1f - recover);
+                    if (t >= actLength) act = Act.None;
+                    break;
+                }
+                case Act.Swing:
+                {
+                    float wind = Ease(0f, 0.2f, t), strike = Ease(0.2f, 0.3f, t), recover = Ease(0.42f, 0.68f, t);
+                    float length = Carried != null ? Carried.Length : 0.3f;
+                    bool both = Carried != null && Carried.TwoHanded;
+                    Vector3 shoulder = both ? chestAt : right.Upper.position;
+                    Vector3 mark = actHasPoint ? actPoint : chestAt + forward * 0.95f;
+                    Vector3 aim = mark - shoulder;
+                    aim = aim.sqrMagnitude > 0.01f ? aim.normalized : forward;
+                    // Back over the shoulder, then down and through: the far end lands on the mark.
+                    Vector3 chop = (aim * 0.85f - up * 0.5f).normalized;
+                    Vector3 raised = shoulder + up * (both ? 0.5f : 0.36f) + side * (both ? 0.05f : 0.16f) - forward * 0.12f;
+                    Vector3 landed = shoulder + Vector3.ClampMagnitude(mark - chop * length * 0.85f - shoulder, 0.56f);
+                    Vector3 hand = Vector3.Lerp(raised, landed, strike);
+                    Vector3 back = (up * 0.75f - forward * 0.6f + side * 0.2f).normalized;
+                    Vector3 swung = Vector3.Slerp(back, chop, strike);
+                    float weight = wind * (1f - recover);
+                    rightAt = Vector3.Lerp(rightAt, hand, weight);
+                    rightWeight = Mathf.Max(rightWeight * (1f - weight), weight);
+                    if (both)
+                    {
+                        leftAt = Vector3.Lerp(leftAt, hand + swung * 0.2f - side * 0.06f, weight);
+                        leftWeight = Mathf.Max(leftWeight * (1f - weight), weight);
+                    }
+                    wantPoint = Vector3.Slerp(wantPoint, swung, weight);
+                    wantPitch += Mathf.Lerp(-10f * wind, 24f, strike) * (1f - recover);
+                    wantRoll += 8f * strike * (1f - recover);
                     if (t >= actLength) act = Act.None;
                     break;
                 }
@@ -402,6 +482,15 @@ namespace DontForgetMe
             }
             Place(left, leftAt, leftWeight, dt);
             Place(right, rightAt, rightWeight, dt);
+
+            if (Carried != null)
+            {
+                // The swing itself is quick; everything else eases, so the thing never snaps about.
+                point = Vector3.Slerp(point, wantPoint, 1f - Mathf.Exp(-(act == Act.Swing ? 40f : 9f) * dt));
+                Vector3 palm = right.Hand.position + (right.Hand.position - right.Lower.position).normalized * 0.07f;
+                Vector3 over = Mathf.Abs(Vector3.Dot(point, up)) > 0.95f ? forward : up;
+                Carried.Root.SetPositionAndRotation(palm, Quaternion.LookRotation(point, over));
+            }
         }
 
         private void Place(Arm arm, Vector3 target, float wanted, float dt)

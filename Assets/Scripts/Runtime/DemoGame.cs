@@ -54,7 +54,8 @@ namespace DontForgetMe
         public ActorMotor ResidentB { get; set; }
         public CharacterAnimator Keeper { get; set; }
         public Transform ShopShutter { get; set; }
-        public GameObject ZhouTool { get; set; }
+        public Weapon ZhouHammer { get; set; }
+        public List<Weapon> Weapons { get; } = new List<Weapon>();
         public GameObject Gate { get; set; }
         public GameObject GateChain { get; set; }
         public GameObject Water { get; set; }
@@ -72,6 +73,17 @@ namespace DontForgetMe
         public bool GateShut { get; private set; }
         // The gate work has stopped because someone has hold of old Zhou.
         public bool RepairStalled { get; private set; }
+        // While the fight lasts the world drops away: no street, no footsteps, no gate. What is
+        // left is a pulse, breathing, blows landing and people screaming.
+        public bool Hushed => (State.Phase == OpeningPhase.Repair || State.Phase == OpeningPhase.Regroup) && !GateShut;
+        // What was heard during the fight, for the walkthrough to check: how many of each, the
+        // loudest anything other than a cry was played, and the quietest any cry was.
+        public int Beats { get; private set; }
+        public int Breaths { get; private set; }
+        public int Blows { get; private set; }
+        public int Cries { get; private set; }
+        public float LoudestOther { get; private set; }
+        public float QuietestCry { get; private set; } = 1f;
 
         private sealed class Hands
         {
@@ -90,12 +102,19 @@ namespace DontForgetMe
         private float captionUntil;
         private float nextBark;
         private float nextNag;
-        private float nextHammer;
+        private float nextBeat;
+        private float nextCry;
+        private float pulseLevel;
+        private readonly Dictionary<Component, float> breathAt = new Dictionary<Component, float>();
+        private readonly Dictionary<Component, float> criedAt = new Dictionary<Component, float>();
         private float playerStruckAt = -100f;
         private AudioSource sound;
         private AudioSource steps;
         private AudioSource drone;
-        private AudioSource effects;
+        private AudioSource pulse;
+        private AudioSource[] voices;
+        private AudioSource[] cries;
+        private int voice, cry;
         private readonly List<AudioClip> clips = new List<AudioClip>();
         private AudioClip bark;
         private AudioClip warning;
@@ -103,8 +122,14 @@ namespace DontForgetMe
         private AudioClip scrape;
         private AudioClip thud;
         private AudioClip clang;
-        private AudioClip growl;
-        private AudioClip tick;
+        private AudioClip beat;
+        private AudioClip pant;
+        private AudioClip rasp;
+        private AudioClip shriek;
+        private AudioClip shout;
+        private AudioClip struckMetal;
+        private AudioClip struckWood;
+        private AudioClip struckPlastic;
         private Vector3 gateAt = GateClosed;
         private Vector3 gateTarget = GateClosed;
         private float gateSpeed = 2.4f;
@@ -226,6 +251,7 @@ namespace DontForgetMe
                     UpdateEscape();
                     break;
             }
+            if (Hushed) UpdateFightSound();
         }
 
         private void UpdateMood()
@@ -245,8 +271,11 @@ namespace DontForgetMe
             }
             atmosphere.Tension = tension;
             if (EndedAt >= 0 && Time.time > EndedAt + (IsFailed ? 0.8f : EndPanelDelay)) atmosphere.MenuBlur = true;
+            bool quiet = paused || Hushed;
             if (drone != null)
-                drone.volume = Mathf.MoveTowards(drone.volume, paused ? 0 : Mathf.InverseLerp(0.3f, 1f, tension) * 0.24f, Time.unscaledDeltaTime * 0.12f);
+                drone.volume = Mathf.MoveTowards(drone.volume, quiet ? 0 : Mathf.InverseLerp(0.3f, 1f, tension) * 0.24f, Time.unscaledDeltaTime * (Hushed ? 0.5f : 0.12f));
+            if (sound != null)
+                sound.volume = Mathf.MoveTowards(sound.volume, Hushed ? 0 : 0.16f, Time.unscaledDeltaTime * (Hushed ? 0.4f : 0.1f));
         }
 
         private void UpdateGate()
@@ -425,14 +454,14 @@ namespace DontForgetMe
             yield return new WaitForSeconds(0.7f);
             if (ShopShutter != null)
             {
-                effects.PlayOneShot(scrape, Loud(ShopShutter.position) * 0.5f);
+                Play(scrape, Loud(ShopShutter.position) * 0.5f, 1f);
                 for (float t = 0; t < 1f; t += Time.deltaTime / 2.2f)
                 {
                     ShopShutter.localScale = new Vector3(1, Mathf.Lerp(0.1f, 1f, t * t * (3f - 2f * t)), 1);
                     yield return null;
                 }
                 ShopShutter.localScale = Vector3.one;
-                effects.PlayOneShot(clang, Loud(ShopShutter.position) * 0.35f);
+                Play(clang, Loud(ShopShutter.position) * 0.35f, 1f);
                 if (Keeper != null) Keeper.transform.parent.gameObject.SetActive(false);
             }
             ResidentA.Body.Cover = false;
@@ -634,7 +663,7 @@ namespace DontForgetMe
             Vector3 leftHold = new Vector3(side * piece.Grip.x, piece.Grip.y, 0), rightHold = new Vector3(-side * piece.Grip.x, piece.Grip.y, 0);
             who.Body.Hold(() => item.TransformPoint(leftHold), () => item.TransformPoint(rightHold), piece.Wheeled ? 6f : 14f);
             yield return new WaitForSeconds(piece.Wheeled ? 0.4f : 0.6f);
-            effects.PlayOneShot(scrape, Loud(item.position) * 0.4f);
+            Play(scrape, Loud(item.position) * 0.4f, 1f);
 
             // From here the piece rides in the carrier's hands and turns as they turn.
             Quaternion facing = Quaternion.LookRotation(Flat(who.Forward()));
@@ -697,9 +726,13 @@ namespace DontForgetMe
             ResidentB.Body.Relax();
             Dog.Follow(Woman.transform, new Vector3(-0.65f, 0, -0.6f));
             Dog.DogBody.Bark();
-            sound.PlayOneShot(bark, 0.4f);
+            if (ZhouHammer != null)
+            {
+                ZhouHammer.Root.gameObject.SetActive(true);
+                Zhou.Body.Carry(ZhouHammer);
+            }
             Siege.Begin();
-            Caption("巷口那个人动了，后面还跟着别的。老周：给我点时间，别让他们碰到我！\nF 把靠近的人推开。撑到门打开就走，不需要杀死谁。", 10);
+            Caption("巷口那个人动了，后面还跟着别的。老周：给我点时间，别让他们碰到我！\nF 抄起手边的杂物，把靠近的人打退。撑到门打开就走。", 10);
         }
 
         private void UpdateRepair()
@@ -710,19 +743,13 @@ namespace DontForgetMe
             if (worker.Working)
             {
                 State.TickRepair(Time.deltaTime);
-                if (Time.time >= nextHammer)
-                {
-                    nextHammer = Time.time + UnityEngine.Random.Range(0.55f, 1.1f);
-                    effects.pitch = UnityEngine.Random.Range(0.9f, 1.15f);
-                    effects.PlayOneShot(tick, Loud(Zhou.transform.position) * 0.5f);
-                }
             }
             else if (worker.Harassed && Time.time >= nextNag)
             {
                 nextNag = Time.time + 5f;
+                Scream(Zhou);
                 Caption("老周：有人拽我——把他弄开！我腾不出手！", 3.5f);
             }
-            if (ZhouTool != null && ZhouTool.activeSelf != worker.Working) ZhouTool.SetActive(worker.Working);
             WatchTheCrowd();
             if (State.Phase == OpeningPhase.Regroup) OpenGate();
         }
@@ -734,7 +761,7 @@ namespace DontForgetMe
             if (near == null || Time.time < nextBark) return;
             nextBark = Time.time + UnityEngine.Random.Range(1.8f, 3.2f);
             Dog.DogBody.Bark();
-            sound.PlayOneShot(bark, 0.45f);
+            if (!Hushed) sound.PlayOneShot(bark, 0.45f);
         }
 
         private void OpenGate()
@@ -743,9 +770,6 @@ namespace DontForgetMe
             gateTarget = GateOpen;
             gateSpeed = 2.4f;
             if (GateChain != null) GateChain.SetActive(false);
-            if (ZhouTool != null) ZhouTool.SetActive(false);
-            effects.PlayOneShot(clang, 0.5f);
-            effects.PlayOneShot(scrape, 0.6f);
             Siege.Surge(ResidentB.transform);
             foreach (ActorMotor actor in new[] { Zhou, Woman, ResidentA })
             {
@@ -803,7 +827,7 @@ namespace DontForgetMe
             ResidentB.Body.Shove();
             yield return new WaitForSeconds(0.17f);
             Siege.ClearGateway(1.5f);
-            Thud(ResidentB.transform.position + Vector3.back, 0.9f);
+            Impact(null, ResidentB.transform.position + Vector3.back);
             ResidentB.Hurry = true;
             ResidentB.GoTo(new Vector3(gateAt.x + 1.1f, 0, 48.95f));
             yield return Until(() => !ResidentB.HasDestination, 2.5f);
@@ -814,7 +838,6 @@ namespace DontForgetMe
             yield return new WaitForSeconds(0.35f);
             gateSpeed = 2.0f;
             gateTarget = GateClosed;
-            effects.PlayOneShot(scrape, 0.7f);
             while (Mathf.Abs(gateAt.x - GateClosed.x) > 0.01f)
             {
                 ResidentB.Speed = 2.3f;
@@ -822,9 +845,10 @@ namespace DontForgetMe
                 Siege.ClearGateway(1.2f);
                 yield return null;
             }
-            effects.PlayOneShot(clang, 0.8f);
-            gateShake = 0.02f;
+            // The slam is where the world comes back.
             GateShut = true;
+            Play(clang, 0.8f, 1f);
+            gateShake = 0.02f;
             closing = false;
             ResidentB.Stop();
             yield return new WaitForSeconds(0.4f);
@@ -876,7 +900,7 @@ namespace DontForgetMe
         public void ShoveLanded(int count)
         {
             if (Time.time - playerStruckAt < 2f) return;
-            Caption(count > 1 ? "前面的人撞倒了后面的。趁现在站稳。" : "他被推得连退几步。只是暂时的。", 2.2f);
+            Caption(count > 1 ? "这一下扫到了不止一个。趁现在站稳。" : "他被打得连退几步，又站住了。", 2.2f);
         }
 
         public void PlayerStruck()
@@ -887,6 +911,8 @@ namespace DontForgetMe
 
         public void CompanionStruck(Transform victim)
         {
+            ActorMotor struck = victim.GetComponent<ActorMotor>();
+            if (struck != null) Scream(struck);
             if (Time.time < nextNag || State.Phase != OpeningPhase.Repair) return;
             nextNag = Time.time + 4.5f;
             if (victim == ResidentA.transform) Caption("街坊：别过来！别过来——！", 3f);
@@ -925,8 +951,9 @@ namespace DontForgetMe
                         ? "到铁门旁，帮老周顶住后面，让他开门。"
                         : "把堵死铁门的重物一件件搬开（" + State.ClearedDebrisCount + " / " + State.DebrisRequired + "）。\n轻的杂物街坊会清。";
                     case OpeningPhase.Repair: return RepairStalled
-                        ? "老周被缠住了，门停了——把他身边的人推开（F）。"
-                        : "守住老周，撑到门打开。F 推开靠近的人，不需要杀死谁。";
+                        ? "老周被缠住了，门停了——把他身边的人打开（F）。"
+                        : Player.Held == null ? "守住老周，撑到门打开。F 从杂物里抄起一样东西。"
+                        : "守住老周，撑到门打开。F 用手里的" + Player.Held.Name + "砸退靠近的人。";
                     case OpeningPhase.Regroup: return GateShut ? "到老周身边，确认大家都在。" : "穿过铁门！人到齐，门才关得上。";
                     default: return "这一段路，我们一起走出来了。";
                 }
@@ -955,7 +982,7 @@ namespace DontForgetMe
 
         public void Footstep(float volume)
         {
-            if (steps == null) return;
+            if (steps == null || Hushed) return;
             steps.pitch = UnityEngine.Random.Range(0.85f, 1.15f);
             steps.PlayOneShot(step, volume);
         }
@@ -967,28 +994,129 @@ namespace DontForgetMe
             return Mathf.Clamp01(1.1f - Vector3.Distance(at, Player.transform.position) / 24f) * fade;
         }
 
-        public void Thud(Vector3 at, float volume)
+        // Each sound gets a source of its own for as long as it lasts, so that pitching one does
+        // not bend another that is still playing.
+        private void Play(AudioClip clip, float volume, float pitch)
         {
-            effects.pitch = UnityEngine.Random.Range(0.85f, 1.15f);
-            effects.PlayOneShot(thud, Loud(at) * volume);
+            AudioSource source = voices[voice++ % voices.Length];
+            source.pitch = pitch;
+            source.PlayOneShot(clip, volume);
+            if (Hushed) LoudestOther = Mathf.Max(LoudestOther, volume);
         }
 
-        public void Growl(Vector3 at, float volume)
+        // Something heavy set down.
+        public void Thud(Vector3 at, float volume)
         {
-            effects.pitch = UnityEngine.Random.Range(0.8f, 1.2f);
-            effects.PlayOneShot(growl, Loud(at) * volume * 0.6f);
+            Play(thud, Loud(at) * volume, UnityEngine.Random.Range(0.85f, 1.15f));
+        }
+
+        // A blow landing on one of them: the body it lands on, and whatever it was struck with.
+        public void Impact(Weapon weapon, Vector3 at)
+        {
+            float loud = Loud(at);
+            Blows++;
+            Play(thud, loud * 0.5f, UnityEngine.Random.Range(0.9f, 1.2f));
+            if (weapon == null || weapon.Made == Weapon.Material.Masonry) return;
+            AudioClip clip = weapon.Made == Weapon.Material.Metal ? struckMetal
+                : weapon.Made == Weapon.Material.Wood ? struckWood : struckPlastic;
+            Play(clip, loud * 0.62f, UnityEngine.Random.Range(0.9f, 1.12f));
+        }
+
+        // One of them breathing: hoarse, and loudest just before they throw themselves forward.
+        public void Rasp(Vector3 at, float volume)
+        {
+            Breaths++;
+            Play(rasp, Loud(at) * volume * 0.36f, UnityEngine.Random.Range(0.78f, 1.08f));
+        }
+
+        // One of ours crying out. Nothing else in the fight is as loud.
+        public void Scream(ActorMotor who)
+        {
+            if (!Hushed || Time.time < nextCry) return;
+            if (criedAt.TryGetValue(who, out float last) && Time.time - last < 4.5f) return;
+            criedAt[who] = Time.time;
+            nextCry = Time.time + 1.3f;
+            bool high = who == Woman || who == ResidentA;
+            float pitch = who == ResidentA ? 1.04f : who == Woman ? 0.93f : who == Zhou ? 0.86f : 1f;
+            AudioSource source = cries[cry++ % cries.Length];
+            source.pitch = pitch * UnityEngine.Random.Range(0.97f, 1.04f);
+            float volume = Mathf.Max(0.8f, Loud(who.transform.position));
+            source.PlayOneShot(high ? shriek : shout, volume);
+            Cries++;
+            QuietestCry = Mathf.Min(QuietestCry, volume);
+        }
+
+        // A pulse that comes up as they close in, never loud; everyone near enough to hear, breathing.
+        private void UpdateFightSound()
+        {
+            Hostile near = Siege.Nearest(Player.transform.position, 9f, true);
+            float close = near != null
+                ? Mathf.InverseLerp(9f, 1.6f, Flat(near.transform.position - Player.transform.position).magnitude) : 0f;
+            pulseLevel = Mathf.MoveTowards(pulseLevel, close, Time.deltaTime * (close > pulseLevel ? 1.2f : 0.35f));
+            if (pulseLevel > 0.03f && Time.time >= nextBeat)
+            {
+                nextBeat = Time.time + Mathf.Lerp(0.92f, 0.43f, pulseLevel);
+                pulse.PlayOneShot(beat, Mathf.Lerp(0.07f, 0.2f, pulseLevel));
+                Beats++;
+            }
+
+            foreach (Hostile hostile in Siege.Hostiles)
+            {
+                if (hostile.Fallen || Flat(hostile.transform.position - Player.transform.position).magnitude > 6f) continue;
+                if (!Breathes(hostile, 1.8f, 3f)) continue;
+                Rasp(hostile.transform.position, 0.6f);
+            }
+            foreach (ActorMotor actor in new[] { Woman, ResidentB, Zhou, ResidentA })
+            {
+                bool frightened = actor == ResidentA;
+                if (!Breathes(actor, frightened ? 0.8f : 1.2f, frightened ? 1.2f : 1.9f)) continue;
+                float pitch = actor == Woman ? 1.22f : actor == ResidentA ? 1.36f : actor == Zhou ? 0.84f : 0.95f;
+                Breaths++;
+                Play(pant, Loud(actor.transform.position) * 0.3f, pitch * UnityEngine.Random.Range(0.95f, 1.06f));
+            }
+            // The one against the wall screams when any of them gets close to her.
+            if (Siege.Nearest(ResidentA.transform.position, 2.3f, false) != null) Scream(ResidentA);
+        }
+
+        private bool Breathes(Component who, float shortest, float longest)
+        {
+            if (!breathAt.TryGetValue(who, out float due)) due = Time.time + UnityEngine.Random.Range(0f, longest);
+            bool now = Time.time >= due;
+            breathAt[who] = now ? Time.time + UnityEngine.Random.Range(shortest, longest) : due;
+            return now;
         }
 
         // A fist or a shoulder against the shut gate.
         public void GateBlow(Vector3 at)
         {
             gateShake = Mathf.Max(gateShake, 0.012f);
-            effects.pitch = UnityEngine.Random.Range(0.8f, 1.1f);
-            effects.PlayOneShot(clang, Loud(at) * 0.4f);
+            Play(clang, Loud(at) * 0.4f, UnityEngine.Random.Range(0.8f, 1.1f));
+        }
+
+        // Picks, at random from the few nearest, something loose in the rubbish to fight with.
+        public Weapon Reserve(Vector3 near, float within, int among)
+        {
+            List<Weapon> free = Weapons.FindAll(item => !item.Taken && Flat(item.Root.position - near).magnitude <= within);
+            if (free.Count == 0) return null;
+            free.Sort((a, b) => Flat(a.Root.position - near).sqrMagnitude.CompareTo(Flat(b.Root.position - near).sqrMagnitude));
+            Weapon chosen = free[UnityEngine.Random.Range(0, Mathf.Min(among, free.Count))];
+            chosen.Taken = true;
+            return chosen;
+        }
+
+        public void Armed(Weapon weapon)
+        {
+            Caption("你从杂物堆里抄起" + weapon.Measure + weapon.Name + "。", 2.5f);
+        }
+
+        public void HostileFell(int count)
+        {
+            if (count == 1) Caption("他倒下去，没有再起来。巷口又有人进来。", 4f);
         }
 
         // All sound is synthesised placeholder audio: air and distant traffic, a low drone for
-        // tense moments, and short percussive cues. None of it is a recording.
+        // tense moments, short percussive cues, and for the fight a pulse, breathing, blows and
+        // cries. None of it is a recording.
         private void ConfigureSound()
         {
             const int rate = 22050;
@@ -1024,7 +1152,10 @@ namespace DontForgetMe
             drone.Play();
 
             steps = gameObject.AddComponent<AudioSource>();
-            effects = gameObject.AddComponent<AudioSource>();
+            pulse = gameObject.AddComponent<AudioSource>();
+            voices = new AudioSource[10];
+            for (int i = 0; i < voices.Length; i++) voices[i] = gameObject.AddComponent<AudioSource>();
+            cries = new[] { gameObject.AddComponent<AudioSource>(), gameObject.AddComponent<AudioSource>() };
             float[] tap = new float[rate / 12];
             float band = 0;
             for (int i = 0; i < tap.Length; i++)
@@ -1093,30 +1224,125 @@ namespace DontForgetMe
             }
             clang = Clip("GatePlaceholder", ring, rate);
 
-            // A voice with no words in it: a rough low tone that wavers and breaks up.
-            float[] moan = new float[(int)(rate * 1.1f)];
-            float throat = 0, breath = 0;
-            for (int i = 0; i < moan.Length; i++)
+            // Heartbeat: two soft knocks, the second lighter. Kept above the range small speakers lose.
+            float[] heart = new float[(int)(rate * 0.42f)];
+            for (int i = 0; i < heart.Length; i++)
             {
-                float t = (float)i / moan.Length;
-                throat += (86f + Mathf.Sin(t * 19f) * 9f + t * 14f) / rate;
-                float saw = (throat % 1f) * 2f - 1f;
-                float white = (float)random.NextDouble() * 2f - 1f;
-                breath += (white - breath) * 0.12f;
-                float rasp = 0.6f + 0.4f * Mathf.Sin(t * 260f);
-                moan[i] = (saw * 0.32f * rasp + breath * 0.9f) * Mathf.Sin(t * Mathf.PI) * (0.7f + 0.3f * Mathf.Sin(t * 37f));
+                float s = (float)i / rate, value = 0;
+                for (int k = 0; k < 2; k++)
+                {
+                    float u = s - k * 0.15f;
+                    if (u < 0) continue;
+                    float f = Mathf.Lerp(96f, 60f, Mathf.Clamp01(u / 0.1f));
+                    value += (k == 0 ? 1f : 0.65f) * Mathf.Exp(-u * 27f)
+                        * (Mathf.Sin(2f * Mathf.PI * f * u) + 0.4f * Mathf.Sin(4f * Mathf.PI * f * u));
+                }
+                heart[i] = value * 0.6f;
             }
-            growl = Clip("VoicePlaceholder", moan, rate);
+            beat = Clip("HeartbeatPlaceholder", heart, rate);
 
-            // Hammer on a chain link.
-            float[] chink = new float[(int)(rate * 0.12f)];
-            for (int i = 0; i < chink.Length; i++)
+            // One of ours out of breath: a quick pull in, a longer push out.
+            float[] gasp = new float[(int)(rate * 0.62f)];
+            float soft = 0, softer = 0;
+            for (int i = 0; i < gasp.Length; i++)
             {
-                float s = (float)i / rate, t = (float)i / chink.Length;
-                chink[i] = (Mathf.Sin(s * 2f * Mathf.PI * 1480f) * 0.5f + Mathf.Sin(s * 2f * Mathf.PI * 2230f) * 0.3f
-                    + ((float)random.NextDouble() - 0.5f) * 0.5f * Mathf.Exp(-t * 30f)) * Mathf.Exp(-t * 9f) * 0.6f;
+                float t = (float)i / gasp.Length;
+                float white = (float)random.NextDouble() * 2f - 1f;
+                soft += (white - soft) * 0.38f;
+                softer += (white - softer) * 0.07f;
+                float inward = t < 0.36f ? Mathf.Pow(Mathf.Sin(t / 0.36f * Mathf.PI), 2f) : 0f;
+                float outward = t > 0.44f ? Mathf.Pow(Mathf.Sin((t - 0.44f) / 0.56f * Mathf.PI), 2f) : 0f;
+                gasp[i] = ((soft - softer) * 1.1f + (white - soft) * 0.35f) * inward * 0.8f + (soft - softer) * 1.5f * outward;
             }
-            tick = Clip("HammerPlaceholder", chink, rate);
+            pant = Clip("BreathPlaceholder", Level(gasp, 0.8f), rate);
+
+            // One of them breathing: lower, wet, catching in the throat.
+            float[] hoarse = new float[(int)(rate * 0.85f)];
+            float chest = 0, deep = 0, throat = 0;
+            for (int i = 0; i < hoarse.Length; i++)
+            {
+                float s = (float)i / rate, t = (float)i / hoarse.Length;
+                float white = (float)random.NextDouble() * 2f - 1f;
+                chest += (white - chest) * 0.13f;
+                deep += (white - deep) * 0.016f;
+                throat += 74f / rate;
+                float rattle = Mathf.Pow(Mathf.Abs(Mathf.Sin(Mathf.PI * 29f * s)), 3f);
+                float saw = (throat % 1f) * 2f - 1f;
+                hoarse[i] = ((chest - deep) * (0.45f + 0.9f * rattle) + saw * 0.12f * rattle) * Mathf.Pow(Mathf.Sin(t * Mathf.PI), 1.5f);
+            }
+            rasp = Clip("HostileBreathPlaceholder", Level(hoarse, 0.85f), rate);
+
+            shriek = Clip("ScreamPlaceholder", Voice(rate, random, 1.05f, new[] { 520f, 940f, 900f, 820f }, new[] { 1050f, 1750f, 3100f }, 0.28f, 0.12f), rate);
+            shout = Clip("ShoutPlaceholder", Voice(rate, random, 0.6f, new[] { 250f, 345f, 320f, 235f }, new[] { 720f, 1180f, 2600f }, 0.45f, 0.2f), rate);
+
+            struckMetal = Clip("MetalBlowPlaceholder", Blow(rate, random, 0.32f, 150f, 70f, 30f,
+                new[] { 1130f, 1870f, 2950f, 4210f }, new[] { 18f, 24f, 32f, 42f }, 0.24f, 0.5f, 200f), rate);
+            struckWood = Clip("WoodBlowPlaceholder", Blow(rate, random, 0.2f, 210f, 120f, 38f,
+                new[] { 640f }, new[] { 50f }, 0.3f, 0.6f, 90f), rate);
+            struckPlastic = Clip("PlasticBlowPlaceholder", Blow(rate, random, 0.18f, 380f, 300f, 45f,
+                new[] { 760f }, new[] { 60f }, 0.3f, 0.4f, 120f), rate);
+        }
+
+        // Scales a clip so its loudest sample sits at "peak".
+        private static float[] Level(float[] samples, float peak)
+        {
+            float top = 0.0001f;
+            foreach (float sample in samples) top = Mathf.Max(top, Mathf.Abs(sample));
+            for (int i = 0; i < samples.Length; i++) samples[i] *= peak / top;
+            return samples;
+        }
+
+        // A cry on an open vowel: a pitch that climbs fast and sags, its overtones shaped by three
+        // resonances of the mouth, roughened, with breath in it.
+        private static float[] Voice(int rate, System.Random random, float seconds, float[] pitch, float[] formants, float rough, float airy)
+        {
+            float[] samples = new float[(int)(rate * seconds)];
+            float phase = 0, hiss = 0, drift = 0;
+            for (int i = 0; i < samples.Length; i++)
+            {
+                float s = (float)i / rate, t = (float)i / samples.Length;
+                // The first tenth is the climb; the rest follows the remaining pitch points evenly.
+                float f0 = t < 0.1f ? Mathf.Lerp(pitch[0], pitch[1], t / 0.1f)
+                    : t < 0.55f ? Mathf.Lerp(pitch[1], pitch[2], (t - 0.1f) / 0.45f) : Mathf.Lerp(pitch[2], pitch[3], (t - 0.55f) / 0.45f);
+                float white = (float)random.NextDouble() * 2f - 1f;
+                drift += (white - drift) * 0.002f;
+                f0 *= 1f + 0.022f * Mathf.Sin(2f * Mathf.PI * 6.5f * s) + drift * 0.25f;
+                phase += f0 / rate;
+                float value = 0;
+                for (int h = 1; h <= 12 && h * f0 < rate * 0.45f; h++)
+                {
+                    float f = h * f0, gain = 0.06f;
+                    for (int k = 0; k < formants.Length; k++)
+                    {
+                        float off = (f - formants[k]) / (300f + formants[k] * 0.12f);
+                        gain += (k == 0 ? 1f : k == 1 ? 0.8f : 0.55f) * Mathf.Exp(-off * off);
+                    }
+                    value += gain / Mathf.Sqrt(h) * Mathf.Sin(2f * Mathf.PI * h * phase);
+                }
+                value *= 1f - rough * (0.5f + 0.5f * Mathf.Sin(Mathf.PI * phase));
+                hiss += (white - hiss) * 0.5f;
+                value += (white - hiss) * airy;
+                float envelope = Mathf.Clamp01(s / 0.03f) * Mathf.Clamp01((seconds - s) / 0.18f);
+                samples[i] = value * envelope;
+            }
+            return Level(samples, 0.97f);
+        }
+
+        // Something hard landing: a low knock, the ring of whatever it is made of, and a click of contact.
+        private static float[] Blow(int rate, System.Random random, float seconds, float from, float to, float damp,
+            float[] partials, float[] decays, float ringing, float click, float clickDamp)
+        {
+            float[] samples = new float[(int)(rate * seconds)];
+            for (int i = 0; i < samples.Length; i++)
+            {
+                float s = (float)i / rate, t = (float)i / samples.Length;
+                float value = Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(from, to, t) * s) * 0.7f * Mathf.Exp(-s * damp);
+                for (int k = 0; k < partials.Length; k++)
+                    value += Mathf.Sin(2f * Mathf.PI * partials[k] * s) * ringing * Mathf.Exp(-s * decays[k]);
+                value += ((float)random.NextDouble() * 2f - 1f) * click * Mathf.Exp(-s * clickDamp);
+                samples[i] = value;
+            }
+            return Level(samples, 0.9f);
         }
 
         // Blends the tail into the head and drops the tail, so the loop point is inaudible.

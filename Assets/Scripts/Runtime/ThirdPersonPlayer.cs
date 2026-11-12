@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 namespace DontForgetMe
@@ -23,6 +24,7 @@ namespace DontForgetMe
         public bool Busy { get; private set; }
         public bool Walking => walkTarget.HasValue;
         public int ShovesLanded { get; private set; }
+        public Weapon Held => Body.Carried;
 
         private CharacterController controller;
         private Crowd.Body body;
@@ -152,7 +154,8 @@ namespace DontForgetMe
             if (shoveAt > 0 && Time.time >= shoveAt)
             {
                 shoveAt = -1f;
-                int struck = game.Siege != null ? game.Siege.ShoveFrom(transform.position, model.forward, 1.7f, 70f, 1f, transform) : 0;
+                int struck = Held != null ? game.Siege.Strike(transform.position, model.forward, Held, 1f, transform)
+                    : game.Siege.ShoveFrom(transform.position, model.forward, 1.7f, 70f, 1f, transform);
                 if (struck > 0)
                 {
                     ShovesLanded++;
@@ -162,28 +165,73 @@ namespace DontForgetMe
             }
         }
 
-        // Steps in and drives both hands forward. Only people actually within reach in front are moved.
+        // With empty hands, snatches up whatever lies nearest in the rubbish. With something in
+        // hand, swings it at whoever is in front; with nothing in reach to pick up, shoves with
+        // both hands as before. Only people actually within reach in front are hit.
         public bool TryPush()
         {
             DemoGame game = DemoGame.Instance;
             if (pushCooldown > 0 || Stamina < 15f || Busy || shoveAt > 0) return false;
+            if (Held == null && game.Siege.Begun)
+            {
+                Weapon found = game.Reserve(transform.position, 3.4f, 3);
+                if (found != null)
+                {
+                    StartCoroutine(Arm(found));
+                    return true;
+                }
+            }
+            float reach = Held != null ? Held.Reach : 1.75f;
             Vector3? contact = null;
-            Hostile near = game.Siege != null ? game.Siege.Nearest(transform.position, 2.1f, false) : null;
+            Hostile near = game.Siege.Nearest(transform.position, reach + 0.4f, false);
             if (near != null)
             {
                 Vector3 to = near.transform.position - transform.position;
                 to.y = 0;
                 Face(near.transform.position);
-                if (to.magnitude < 1.75f) contact = near.transform.position + Vector3.up * 1.3f - to.normalized * 0.14f;
+                if (to.magnitude < reach) contact = near.transform.position + Vector3.up * 1.3f - to.normalized * 0.14f;
             }
-            Body.Shove(contact);
             faceHeldUntil = Time.time + 0.5f;
-            thrown += model.forward * 2.6f;
-            shoveAt = Time.time + 0.17f;
-            Stamina -= 15f;
-            pushCooldown = 0.85f;
+            if (Held != null)
+            {
+                Body.Swing(contact);
+                thrown += model.forward * 1.8f;
+                shoveAt = Time.time + 0.27f;
+                Stamina -= Held.TwoHanded ? 17f : 12f;
+                pushCooldown = Held.Recovery;
+            }
+            else
+            {
+                Body.Shove(contact);
+                thrown += model.forward * 2.6f;
+                shoveAt = Time.time + 0.17f;
+                Stamina -= 15f;
+                pushCooldown = 0.85f;
+            }
             game.Footstep(0.25f);
             return true;
+        }
+
+        // Two quick steps to the thing, a hand down for it, and it is in the fist.
+        private IEnumerator Arm(Weapon weapon)
+        {
+            DemoGame game = DemoGame.Instance;
+            Occupy(true);
+            Vector3 to = weapon.Root.position - transform.position;
+            to.y = 0;
+            if (to.magnitude > 0.8f) WalkTo(weapon.Root.position - to.normalized * 0.7f, 4.6f);
+            for (float until = Time.time + 1.3f; Walking && Time.time < until;) yield return null;
+            walkTarget = null;
+            Face(weapon.Root.position);
+            faceHeldUntil = Time.time + 0.4f;
+            if (weapon.Root.position.y < 0.7f) Body.Stance("m_crouch_idle", 0.3f);
+            Body.Hold(null, () => weapon.Root.position);
+            yield return new WaitForSeconds(0.22f);
+            Body.Release();
+            Body.Carry(weapon);
+            pushCooldown = 0.15f;
+            Occupy(false);
+            game.Armed(weapon);
         }
 
         public void Face(Vector3 point)

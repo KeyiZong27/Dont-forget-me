@@ -554,13 +554,8 @@ namespace DontForgetMe.Editor
 
         private static void BuildSky(ArtCatalog catalog)
         {
-            Cubemap sky = AssetDatabase.LoadAssetAtPath<Cubemap>("Assets/Art/Sky/sky_late_afternoon.hdr");
-            Add(catalog, "sky", sky);
-            Add(catalog, "skysamples", AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Art/Sky/sky_late_afternoon_samples.txt"));
-            Material material = new Material(RequireShader("Skybox/Cubemap"));
-            material.SetTexture("_Tex", sky);
-            material.SetFloat("_Exposure", 1f);
-            Add(catalog, "mat/sky", SaveMaterial(material, "base_sky"));
+            // The sky is computed from the sun's position at run time (Sky.cs); there is no sky image.
+            Add(catalog, "mat/sky", SaveMaterial(new Material(RequireShader("DontForgetMe/Sky")), "base_sky"));
         }
 
         private static void BuildLook(ArtCatalog catalog)

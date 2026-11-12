@@ -12,7 +12,8 @@ namespace DontForgetMe
         private const float Skin = 0.3f;
         private const float FloorHeight = 3.1f;
         private static Transform root;
-        private static Material trim, darkMetal, greenPaint, greyPaint, glass, roofing, curb;
+        private static Material trim, darkMetal, greenPaint, greyPaint, glass, roofing, curb, puddle;
+        private static Texture2D blotch;
 
         private static readonly string[] SignColours = { "8C2B22", "1F4E79", "2E6B4A", "D9D2C0", "B8862B", "5B3A6B" };
         private static readonly Color[] CurtainColours =
@@ -147,7 +148,7 @@ namespace DontForgetMe
             Kit.Box("AlleyGround", new Vector3(0, -0.25f, 41.1f), new Vector3(6.6f, 0.5f, 26.2f), S("concrete_floor_worn_001"), root, true);
             Kit.Box("CourtyardGround", new Vector3(0, -0.25f, 63.1f), new Vector3(18f, 0.5f, 17.8f), Art.Tint("surf/brick_pavement_02", new Color(1f, 0.98f, 0.95f)), root, true);
             Kit.Box("BeyondRoad", new Vector3(0, -0.27f, 84f), new Vector3(40f, 0.5f, 24f), asphalt, root);
-            Kit.Box("Underlay", new Vector3(0, -0.6f, 34f), new Vector3(160f, 0.5f, 180f), roofing, root);
+            Kit.Box("Underlay", new Vector3(0, -0.6f, 0f), new Vector3(260f, 0.5f, 420f), roofing, root);
 
             // Worn paint, drains and standing water break up the large ground surfaces.
             Texture2D wear = Kit.Noise("PaintWear", 128, (u, v, n) =>
@@ -168,7 +169,7 @@ namespace DontForgetMe
                 float edge = 1f - new Vector2(u - 0.5f, v - 0.5f).magnitude * 2f;
                 return new Color(1, 1, 1, Mathf.Clamp01((edge - 0.28f + (n - 0.5f) * 0.55f) * 6f));
             }, 4f, 11.3f);
-            Material water = Art.Textured("mat/water", pool, new Color(0.035f, 0.04f, 0.045f, 0.86f), "puddle");
+            Material water = puddle = Art.Textured("mat/water", pool, new Color(0.035f, 0.04f, 0.045f, 0.86f), "puddle");
             float[,] puddles =
             {
                 { 3.4f, 9.5f, 2.6f, 1.5f }, { -2.6f, 19.5f, 1.9f, 2.4f }, { 5.0f, 23.5f, 2.8f, 1.6f }, { -0.9f, 1.2f, 1.6f, 1.1f },
@@ -184,6 +185,7 @@ namespace DontForgetMe
                 return new Color(1, 1, 1, Mathf.Clamp01((edge - 0.3f + (n - 0.5f) * 0.6f) * 2.6f) * 0.5f);
             }, 5f, 21.9f);
             Material stain = Art.Textured("mat/decal", blot, new Color(0.05f, 0.045f, 0.04f), "stain");
+            blotch = blot;
             System.Random random = new System.Random(11);
             for (int i = 0; i < 26; i++)
             {
@@ -576,7 +578,9 @@ namespace DontForgetMe
         private static void Window(Transform t, float cx, float y, float ww, float wh, Material frame, System.Random random, bool cages)
         {
             int roll = random.Next(100);
-            Material pane = roll < 8 ? Art.Glow(new Color(1f, 0.78f, 0.5f), 0.45f) : glass;
+            // Dusk: about a quarter of the rooms have a light on, some of them a television.
+            Material pane = roll < 19 ? Art.Glow(new Color(1f, 0.74f, 0.44f), 0.7f)
+                : roll < 25 ? Art.Glow(new Color(0.62f, 0.76f, 1f), 0.5f) : glass;
             Kit.Quad("Glass", new Vector3(cx, y + wh / 2, -0.17f), Vector3.forward, Vector3.up, new Vector2(ww, wh), pane, t);
             if (random.Next(100) < 45)
             {
@@ -738,7 +742,8 @@ namespace DontForgetMe
             Kit.Box("HoardingBase", new Vector3(0, 0.12f, -3.5f), new Vector3(21f, 0.24f, 0.24f), curb, root);
             for (int i = 0; i <= 8; i++)
                 Kit.Box("HoardingPost", new Vector3(-10.4f + i * 2.6f, 1.45f, -3.47f), new Vector3(0.09f, 2.9f, 0.09f), darkMetal, root);
-            Kit.Sign("施工围挡  注意安全", new Vector3(-3.4f, 1.75f, -3.5f), Vector3.forward, 0.3f, new Color(0.75f, 0.2f, 0.15f, 0.8f), 1f, root);
+            // Painted lettering is unlit, so in the shade at this hour it is given dimmed.
+            Kit.Sign("施工围挡  注意安全", new Vector3(-3.4f, 1.75f, -3.5f), Vector3.forward, 0.3f, new Color(0.75f, 0.2f, 0.15f, 0.8f), 0.3f, root);
             // Kept to a single storey: anything taller would shade the whole street from the low sun.
             Facade("SouthBlock", new Vector3(-10.5f, 0, -9), 0, 21, concrete, 0, null, null, 19, 9f, 4.2f, false);
 
@@ -755,11 +760,27 @@ namespace DontForgetMe
 
             foreach (Vector3 at in new[] { new Vector3(-4.85f, 0.1f, 2.2f), new Vector3(-4.85f, 0.1f, 21.5f), new Vector3(8.75f, 0.1f, 9.5f), new Vector3(8.75f, 0.1f, 25f) })
             {
-                GameObject lamp = Kit.Prop("street_lamp_01", at, at.x < 0 ? 90 : -90, root, false, 1.25f);
+                GameObject lamp = StreetLamp(at, at.x < 0 ? 90 : -90, at.z > 20f);
                 BoxCollider post = lamp.AddComponent<BoxCollider>();
                 post.center = new Vector3(0, 1.5f, 0);
                 post.size = new Vector3(0.22f, 3f, 0.22f);
             }
+        }
+
+        // A street lamp, already lit at this hour: the lantern glows and throws a pool of sodium light.
+        private static GameObject StreetLamp(Vector3 at, float yaw, bool shadows)
+        {
+            const float scale = 1.25f;
+            GameObject lamp = Kit.Prop("street_lamp_01", at, yaw, root, false, scale);
+            float top = Kit.PropSize("street_lamp_01").y * scale;
+            Vector3 head = at + Vector3.up * (top - 0.42f);
+            Color sodium = new Color(1f, 0.66f, 0.32f);
+            // The lantern's panes are painted into the model's texture, so the light in them is laid
+            // over the outside as a glow that adds to what is behind it and leaves the frame showing.
+            NoShadow(Kit.Lathe("LampGlow", at + Vector3.up * (top - 0.98f), new[] { new Vector2(0.2f, 0f), new Vector2(0.34f, 0.66f) },
+                Art.Textured("mat/shaft", Texture2D.whiteTexture, new Color(1f, 0.6f, 0.26f, 0.6f), "lantern"), root, 12));
+            Kit.Spot("StreetLampLight", head - Vector3.up * 0.15f, Vector3.down, sodium, 14f, 12f, 140f, root, shadows);
+            return lamp;
         }
 
         // Facade-local position on the west repair building: x = 19 - worldZ, z = worldX + 10.5.
@@ -926,8 +947,8 @@ namespace DontForgetMe
                 GameObject bulb = Kit.Lathe("LampBulb", at - Vector3.up * 0.02f, new[] { new Vector2(0, 0), new Vector2(0.04f, 0.03f), new Vector2(0.03f, 0.09f), new Vector2(0, 0.1f) },
                     Art.Glow(new Color(1f, 0.72f, 0.4f), 7f), root, 10);
                 NoShadow(bulb);
-                // Only the lamp over the pile casts shadows: with the repair shop's tube and the gate
-                // spot that is 13 shadow maps, inside the 16 the atlas holds (see DemoSetup).
+                // Only the lamp over the pile casts shadows: with the repair shop's tube, the gate spot
+                // and two street lamps that is 15 shadow maps, inside the 16 the atlas holds (see DemoSetup).
                 Light lamp = Kit.Lamp("AlleyLamp", at - Vector3.up * 0.15f, new Color(1f, 0.70f, 0.40f), i == 2 ? 5.5f : 4f, 7.5f, root, i == 2);
                 game.AlleyLamps.Add(lamp);
                 game.AlleyBulbs.Add(bulb.GetComponent<Renderer>());
@@ -953,6 +974,317 @@ namespace DontForgetMe
 
             BuildGate(game);
             BuildPile(game);
+            BuildWeapons(game);
+            BuildFilth();
+        }
+
+        // The way out is a back alley nobody has swept in years: grime where the walls meet the
+        // ground, damp running down from every pipe and air conditioner, paper and cans blown
+        // into the corners, burst bags, broken pallets, small adverts pasted over each other.
+        // None of it has a collider, and nothing solid stands in the middle of the lane.
+        private static void BuildFilth()
+        {
+            Transform filth = Group("AlleyFilth", Vector3.zero, 0);
+            System.Random random = new System.Random(29);
+            System.Func<float, float, float> between = (a, b) => Mathf.Lerp(a, b, (float)random.NextDouble());
+            // Doorways are recessed, so nothing pasted flat on the wall may cross them.
+            float[] westDoors = { 49.18f, 39.54f }, eastDoors = { 36.33f, 49.18f };
+            System.Func<float, float, float, bool> clear = (side, z, half) =>
+            {
+                foreach (float door in side < 0 ? westDoors : eastDoors)
+                    if (Mathf.Abs(z - door) < 0.8f + half) return false;
+                return true;
+            };
+
+            // Fine dirt over the whole floor, darker blotches, and green where it stays wet.
+            Texture2D grit = Kit.Noise("Grit", 256, (u, v, n) => new Color(1, 1, 1, Mathf.Clamp01((n - 0.5f) * 5f) * 0.55f), 70f, 5.3f);
+            grit.wrapMode = TextureWrapMode.Repeat;
+            Kit.Quad("Grit", new Vector3(0, 0.007f, 41.1f), Vector3.up, Vector3.forward, new Vector2(5.9f, 25.6f),
+                Art.Textured("mat/decal", grit, new Color(0.06f, 0.05f, 0.04f), "grit"), filth, 2.3f);
+            Material dark = Art.Textured("mat/decal", blotch, new Color(0.03f, 0.028f, 0.025f), "soot");
+            Material moss = Art.Textured("mat/decal", blotch, new Color(0.06f, 0.09f, 0.035f), "moss");
+            Material rustStain = Art.Textured("mat/decal", blotch, new Color(0.22f, 0.1f, 0.04f), "rust");
+            for (int i = 0; i < 46; i++)
+            {
+                bool edge = i % 3 != 0;
+                float x = edge ? (random.Next(2) == 0 ? -1f : 1f) * between(1.9f, 2.8f) : between(-1.8f, 1.8f);
+                float size = between(0.8f, 2.6f);
+                Kit.Quad("Grime", new Vector3(x, 0.008f, between(28.6f, 47.6f)), Vector3.up, Quaternion.Euler(0, random.Next(360), 0) * Vector3.forward,
+                    new Vector2(size, size * between(0.6f, 1.3f)), i % 7 == 3 ? rustStain : edge && i % 2 == 0 ? moss : dark, filth);
+            }
+
+            // Dirt banked against the foot of both walls, and soot climbing a metre up them.
+            Texture2D bank = Kit.Noise("Bank", 128, (u, v, n) => new Color(1, 1, 1, Mathf.Clamp01((1f - u) * 1.5f - 0.25f + (n - 0.5f) * 0.9f) * 0.85f), 9f, 31.4f);
+            Texture2D climb = Kit.Noise("Climb", 128, (u, v, n) => new Color(1, 1, 1, Mathf.Clamp01((1f - v) * 1.35f - 0.2f + (n - 0.5f) * 0.9f) * 0.8f), 7f, 44.9f);
+            Texture2D run = Kit.Noise("Run", 128, (u, v, n) =>
+                new Color(1, 1, 1, Mathf.Clamp01(1f - Mathf.Abs(u - 0.5f) * 2.4f + (n - 0.5f) * 0.9f) * Mathf.Clamp01(v * 1.6f) * 0.6f), 11f, 12.7f);
+            Material banked = Art.Textured("mat/decal", bank, new Color(0.035f, 0.03f, 0.025f), "bank");
+            Material sooted = Art.Textured("mat/decal", climb, new Color(0.03f, 0.03f, 0.03f), "climb");
+            Material damp = Art.Textured("mat/decal", run, new Color(0.03f, 0.035f, 0.03f), "run");
+            foreach (float side in new[] { -1f, 1f })
+            {
+                Vector3 into = Vector3.right * -side;
+                for (float z = 29.6f; z < 47.4f; z += 2.4f)
+                {
+                    Kit.Quad("Bank", new Vector3(side * 2.4f, 0.009f, z), Vector3.up, side < 0 ? Vector3.forward : Vector3.back,
+                        new Vector2(1.15f, 2.4f), banked, filth);
+                    if (clear(side, z, 1.2f))
+                        Kit.Quad("Soot", new Vector3(side * 2.972f, 0.72f, z), into, Vector3.up, new Vector2(2.4f, 1.44f), sooted, filth);
+                }
+                for (int i = 0; i < 9; i++)
+                {
+                    // Kept below the first-floor cornice: above it the windows are set back from the wall.
+                    float z = between(29f, 47f), foot = between(0.2f, 1.2f), tall = Mathf.Min(between(1.6f, 3.4f), 3.05f - foot);
+                    if (!clear(side, z, 0.3f)) continue;
+                    Kit.Quad("Damp", new Vector3(side * 2.97f, foot + tall / 2f, z), into, Vector3.up,
+                        new Vector2(between(0.3f, 0.7f), tall), damp, filth);
+                }
+            }
+
+            // Standing water in the gutter and where the floor has sunk.
+            Kit.Quad("GutterWater", new Vector3(2.72f, 0.011f, 35.5f), Vector3.up, Vector3.forward, new Vector2(0.26f, 9.5f),
+                Art.Tint("mat/water", new Color(0.03f, 0.035f, 0.035f, 0.8f), 0.97f), filth);
+            foreach (Vector3 pool in new[] { new Vector3(-2.1f, 1.5f, 32.2f), new Vector3(1.9f, 2.1f, 38.6f), new Vector3(-0.4f, 1.7f, 30.4f), new Vector3(0.7f, 1.3f, 44.2f) })
+                Kit.Quad("Puddle", new Vector3(pool.x, 0.01f, pool.z), Vector3.up, Quaternion.Euler(0, pool.z * 53f, 0) * Vector3.forward,
+                    new Vector2(pool.y, pool.y * 0.7f), puddle, filth);
+
+            // Paper: leaflets and sheets of newspaper, trodden flat, torn and gone grey.
+            Texture2D sheet = Art.Own(new Texture2D(64, 64, TextureFormat.RGBA32, true) { name = "Leaflet" });
+            Color[] ink = new Color[64 * 64];
+            for (int y = 0; y < 64; y++)
+                for (int x = 0; x < 64; x++)
+                {
+                    float dirt = Mathf.PerlinNoise(x * 0.11f + 3f, y * 0.11f + 7f);
+                    bool print = x > 6 && x < 57 && y > 6 && y < 57 && y % 6 < 2 && (x * 5 + y / 6 * 17) % 23 < 19;
+                    float tone = (print ? 0.74f : 0.9f) - dirt * 0.4f;
+                    // Edges eaten away unevenly, and one corner gone.
+                    float inset = Mathf.Min(Mathf.Min(x, 63 - x), Mathf.Min(y, 63 - y)) / 32f;
+                    float torn = inset * 6f - Mathf.PerlinNoise(x * 0.3f, y * 0.3f) * 1.6f + 0.3f;
+                    if (x + y < 26 - dirt * 10f) torn = 0;
+                    ink[y * 64 + x] = new Color(tone, tone, tone, Mathf.Clamp01(torn));
+                }
+            sheet.SetPixels(ink);
+            sheet.wrapMode = TextureWrapMode.Clamp;
+            sheet.Apply(true);
+            Color[] papers = { new Color(0.62f, 0.61f, 0.56f), new Color(0.6f, 0.54f, 0.4f), new Color(0.56f, 0.45f, 0.44f), new Color(0.46f, 0.5f, 0.54f), new Color(0.5f, 0.5f, 0.48f) };
+            for (int i = 0; i < 96; i++)
+            {
+                bool blown = i % 5 != 0;
+                float x = blown ? (random.Next(2) == 0 ? -1f : 1f) * between(1.4f, 2.85f) : between(-1.3f, 1.3f);
+                float size = i % 13 == 0 ? 0.42f : between(0.17f, 0.3f);
+                Kit.Quad("Paper", new Vector3(x, 0.012f, between(28.5f, 47.7f)), Vector3.up, Quaternion.Euler(0, random.Next(360), 0) * Vector3.forward,
+                    new Vector2(size, size * between(1f, 1.45f)), Art.Textured("mat/decal", sheet, papers[i % papers.Length], "paper" + i % papers.Length), filth);
+            }
+
+            // Flattened cartons. Each is a different thickness, so where two overlap their tops never coincide.
+            Material carton = Art.Plain(new Color(0.46f, 0.35f, 0.22f), 0.08f), sodden = Art.Plain(new Color(0.27f, 0.21f, 0.14f), 0.3f);
+            for (int i = 0; i < 17; i++)
+            {
+                float thick = 0.014f + i * 0.003f;
+                float x = (i % 2 == 0 ? -1f : 1f) * between(1.5f, 2.6f);
+                GameObject flat = Kit.Box("Carton", new Vector3(x, thick / 2f - 0.002f, between(28.8f, 44.6f)),
+                    new Vector3(between(0.5f, 0.9f), thick, between(0.4f, 0.7f)), i % 3 == 0 ? sodden : carton, filth);
+                flat.transform.localRotation = Quaternion.Euler(0, random.Next(360), 0);
+            }
+
+            // Cans and bottles, most on their sides.
+            Vector2[] can = { new Vector2(0, 0), new Vector2(0.03f, 0), new Vector2(0.033f, 0.006f), new Vector2(0.033f, 0.108f), new Vector2(0.027f, 0.116f), new Vector2(0, 0.116f) };
+            Vector2[] bottle =
+            {
+                new Vector2(0, 0), new Vector2(0.03f, 0), new Vector2(0.033f, 0.01f), new Vector2(0.033f, 0.15f), new Vector2(0.014f, 0.2f),
+                new Vector2(0.013f, 0.245f), new Vector2(0, 0.245f)
+            };
+            Material[] tins =
+            {
+                Art.Plain(new Color(0.55f, 0.1f, 0.08f), 0.6f), Art.Plain(new Color(0.1f, 0.32f, 0.16f), 0.6f), Art.Metal(new Color(0.7f, 0.7f, 0.68f), 0.6f),
+                Art.Plain(new Color(0.1f, 0.2f, 0.42f), 0.6f)
+            };
+            Material[] glasses = { Art.Plain(new Color(0.08f, 0.2f, 0.1f), 0.85f), Art.Plain(new Color(0.3f, 0.2f, 0.08f), 0.85f), Art.Plain(new Color(0.55f, 0.62f, 0.66f), 0.7f) };
+            for (int i = 0; i < 46; i++)
+            {
+                bool tin = i % 5 < 3, upright = i % 6 == 0;
+                float x = (random.Next(2) == 0 ? -1f : 1f) * between(i % 4 == 0 ? 0.9f : 1.6f, 2.8f);
+                GameObject item = Kit.Lathe(tin ? "Can" : "Bottle", new Vector3(x, upright ? 0f : 0.033f, between(28.6f, 47.6f)), tin ? can : bottle,
+                    tin ? tins[i % tins.Length] : glasses[i % glasses.Length], filth, 10);
+                if (!upright) item.transform.localRotation = Quaternion.Euler(0, random.Next(360), 0) * Quaternion.Euler(90, 0, 0);
+                NoShadow(item);
+            }
+
+            // Broken brick and lumps of render fallen off the walls.
+            Material fired = Art.Plain(new Color(0.44f, 0.21f, 0.15f), 0.1f);
+            for (int i = 0; i < 14; i++)
+            {
+                float x = (i % 2 == 0 ? -1f : 1f) * between(1.7f, 2.8f), z = between(28.8f, 44.6f);
+                if (i % 3 == 0)
+                    Kit.Lathe("Rubble", new Vector3(x, 0, z), new[] { new Vector2(0, 0), new Vector2(between(0.05f, 0.11f), 0), new Vector2(0.05f, 0.05f), new Vector2(0, 0.07f) }, curb, filth, 6);
+                else
+                    Kit.Box("Brick", new Vector3(x, 0.0275f, z), new Vector3(0.21f, 0.055f, 0.105f), fired, filth).transform.localRotation =
+                        Quaternion.Euler(0, random.Next(360), i % 5 == 0 ? 12 : 0);
+            }
+
+            // Two pallets: one flat with rubbish on it, one propped against the wall.
+            foreach (Vector3[] pose in new[]
+            {
+                new[] { new Vector3(-2.3f, 0f, 33.3f), new Vector3(0, 12, 0) },
+                new[] { new Vector3(2.72f, 0.56f, 31.3f), new Vector3(0, 4, 72) }
+            })
+            {
+                Transform pallet = new GameObject("Pallet").transform;
+                pallet.SetParent(filth, false);
+                pallet.localPosition = pose[0];
+                pallet.localRotation = Quaternion.Euler(pose[1]);
+                Material timber = S("old_wood_floor");
+                foreach (float x in new[] { -0.45f, 0f, 0.45f })
+                    Kit.Box("Runner", new Vector3(x, 0.065f, 0), new Vector3(0.09f, 0.09f, 1.2f), timber, pallet);
+                for (int i = 0; i < 5; i++)
+                    Kit.Box("Slat", new Vector3(0, 0.121f, -0.55f + i * 0.275f), new Vector3(1f, 0.022f, 0.1f), timber, pallet);
+                for (int i = 0; i < 3; i++)
+                    Kit.Box("Foot", new Vector3(0, 0.011f, -0.55f + i * 0.55f), new Vector3(1f, 0.022f, 0.1f), timber, pallet);
+            }
+            Kit.Prop("trashbag", new Vector3(-2.35f, 0.13f, 33.1f), 70, filth);
+            Kit.Prop("cardboard_box_01", new Vector3(-2.2f, 0.13f, 33.7f), 25, filth, false, 0.9f);
+
+            // More of what was already here: bags, boxes on their sides, a tyre, split sacks.
+            float[,] bags =
+            {
+                { -2.2f, 29.2f, 1f }, { -2.7f, 29.7f, 0.85f }, { 2.6f, 29.4f, 1.05f }, { 2.2f, 30.0f, 0.9f }, { 2.7f, 32.6f, 1f }, { -2.6f, 35.1f, 1.1f },
+                { -2.2f, 35.7f, 0.8f }, { 2.5f, 37.0f, 0.95f }, { -2.5f, 37.9f, 0.9f }, { 2.1f, 36.3f, 0.75f }
+            };
+            for (int i = 0; i < bags.GetLength(0); i++)
+                Kit.Prop("trashbag", new Vector3(bags[i, 0], 0, bags[i, 1]), i * 67f, filth, false, bags[i, 2]);
+            Lying("cardboard_box_01", new Vector3(-2.15f, 0.2f, 31.6f), new Vector3(90, 30, 0), filth);
+            Lying("cardboard_box_01", new Vector3(2.15f, 0.2f, 34.9f), new Vector3(0, 70, 90), filth, 0.9f);
+            Lying("cardboard_box_01", new Vector3(-2.3f, 0.2f, 38.9f), new Vector3(90, 100, 0), filth, 0.8f);
+            Lying("plastic_crate_01", new Vector3(2.3f, 0.15f, 32.0f), new Vector3(0, 20, 90), filth);
+            Lying("old_tyre", new Vector3(-2.5f, 0.09f, 34.3f), new Vector3(90, 0, 0), filth);
+            Lying("old_tyre", new Vector3(2.78f, 0.3f, 39.0f), new Vector3(0, 90, 12), filth);
+            Kit.Prop("cement_bag", new Vector3(2.4f, 0, 30.8f), 60, filth);
+            Kit.Prop("plastic_jerrycan", new Vector3(-2.7f, 0, 32.3f), 200, filth);
+            Lying("plastic_monobloc_chair_01", new Vector3(-2.35f, 0.32f, 36.2f), new Vector3(90, 150, 0), filth);
+
+            // Small adverts pasted on anything flat, in layers, and what the residents painted in reply.
+            string[] trades = { "疏通下水道", "开锁换锁", "高价回收", "搬家拉货", "防水补漏", "空调加氟", "打孔", "通厕所" };
+            Color[] stock = { new Color(0.82f, 0.8f, 0.74f), new Color(0.82f, 0.74f, 0.4f), new Color(0.8f, 0.5f, 0.52f), new Color(0.6f, 0.74f, 0.6f) };
+            for (int i = 0; i < 26; i++)
+            {
+                float side = i % 2 == 0 ? -1f : 1f, z = between(29f, 47.3f);
+                if (!clear(side, z, 0.15f)) continue;
+                string trade = trades[random.Next(trades.Length)];
+                float wide = 0.05f + trade.Length * 0.042f;
+                Vector3 at = new Vector3(side * (2.972f - (i % 3) * 0.004f), between(1.0f, 1.75f), z);
+                NoShadow(Kit.Box("Advert", at, new Vector3(0.006f, 0.085f, wide), Art.Plain(stock[i % stock.Length], 0.15f), filth));
+                Kit.Sign(trade, at - Vector3.right * side * 0.005f, Vector3.right * -side, 0.036f,
+                    i % 3 == 0 ? new Color(0.1f, 0.1f, 0.12f) : new Color(0.6f, 0.08f, 0.06f), 0.5f, filth);
+            }
+            Kit.Sign("此处禁止倒垃圾", new Vector3(-2.968f, 1.95f, 33.4f), Vector3.right, 0.21f, new Color(0.55f, 0.1f, 0.08f, 0.8f), 0.45f, filth);
+            Kit.Sign("拆", new Vector3(2.968f, 1.7f, 32.3f), Vector3.left, 0.7f, new Color(0.6f, 0.1f, 0.08f, 0.75f), 0.45f, filth);
+            Vector3[] ring = new Vector3[25];
+            for (int i = 0; i < ring.Length; i++)
+            {
+                float a = i * Mathf.PI * 2f / (ring.Length - 1);
+                ring[i] = new Vector3(2.962f, 1.7f + Mathf.Sin(a) * 0.52f, 32.3f + Mathf.Cos(a) * 0.52f);
+            }
+            NoShadow(Kit.Path("DemolitionMark", ring, 0.016f, Art.Plain(new Color(0.5f, 0.09f, 0.07f), 0.2f), filth, 5));
+        }
+
+        private static Weapon AddWeapon(DemoGame game, Transform item, string name, string measure, float length, float damage,
+            float power, bool both, Weapon.Material made)
+        {
+            Weapon weapon = new Weapon
+            {
+                Name = name, Measure = measure, Root = item, Length = length, Damage = damage, Power = power, TwoHanded = both, Made = made
+            };
+            if (game != null) game.Weapons.Add(weapon);
+            return weapon;
+        }
+
+        // A weapon's holder: its origin is where the hand goes and +z runs toward the end that hits.
+        private static Transform Holder(string name, Vector3 grip, Vector3 toward)
+        {
+            Transform item = new GameObject("Weapon " + name).transform;
+            item.SetParent(root, false);
+            toward.Normalize();
+            item.SetPositionAndRotation(grip, Quaternion.LookRotation(toward, Mathf.Abs(toward.y) > 0.95f ? Vector3.forward : Vector3.up));
+            return item;
+        }
+
+        // Makes a weapon of an imported model standing at "at" in pose "pose". "hold" picks the point
+        // of its bounding box that is gripped and "toward", in the model's own axes, the direction
+        // from there to the end that hits.
+        private static Weapon PropWeapon(DemoGame game, string name, string measure, string id, float scale, Vector3 hold, Vector3 toward,
+            Vector3 at, Quaternion pose, float damage, float power, bool both, Weapon.Material made)
+        {
+            ArtCatalog.Entry entry = Art.Entry("prop/" + id);
+            Quaternion align = Quaternion.FromToRotation(toward.normalized, Vector3.forward);
+            Vector3 grip = (entry.center + Vector3.Scale(hold, entry.size * 0.5f)) * scale;
+            Transform item = new GameObject("Weapon " + name).transform;
+            item.SetParent(root, false);
+            item.SetPositionAndRotation(at + pose * grip, pose * Quaternion.Inverse(align));
+            Kit.Prop(id, Vector3.zero, Vector3.one * scale, align, item, false, hold);
+            // From the grip to the far side of the box along the hitting direction.
+            Vector3 reach = Vector3.Scale(entry.size * scale, new Vector3(Mathf.Abs(toward.normalized.x), Mathf.Abs(toward.normalized.y), Mathf.Abs(toward.normalized.z)));
+            return AddWeapon(game, item, name, measure, Mathf.Max(0.12f, (reach.x + reach.y + reach.z) * 0.9f), damage, power, both, made);
+        }
+
+        // Loose things in the rubbish by the gate that will do to hit someone with. Each person
+        // who fights takes one of the few nearest at random, so who ends up with the iron pipe
+        // and who with the plastic chair differs from one attempt to the next.
+        private static void BuildWeapons(DemoGame game)
+        {
+            Material iron = Art.Tint("surf/rusty_metal_02", new Color(0.5f, 0.44f, 0.4f));
+            Material timber = S("old_wood_floor");
+            Material fired = Art.Plain(new Color(0.46f, 0.22f, 0.16f), 0.12f);
+
+            foreach (Vector3[] lean in new[]
+            {
+                new[] { new Vector3(-1.47f, 0.02f, 45.9f), new Vector3(-0.22f, 1f, 0.05f) },
+                new[] { new Vector3(1.48f, 0.02f, 47.5f), new Vector3(0.22f, 1f, 0f) }
+            })
+            {
+                Transform pipe = Holder("铁管", lean[0], lean[1]);
+                Kit.Tube("Pipe", new Vector3(0, 0, -0.12f), new Vector3(0, 0, 0.74f), 0.017f, iron, pipe, 8);
+                AddWeapon(game, pipe, "铁管", "一根", 0.74f, 30f, 1f, false, Weapon.Material.Metal);
+            }
+
+            Vector3[][] battens =
+            {
+                new[] { new Vector3(-1.46f, 0.03f, 47.05f), new Vector3(-0.2f, 1f, -0.1f) },
+                new[] { new Vector3(1.9f, 0.03f, 44.82f), new Vector3(0.9f, 0f, 0.3f) }
+            };
+            foreach (Vector3[] rest in battens)
+            {
+                Transform batten = Holder("木方", rest[0], rest[1]);
+                Kit.Box("Batten", new Vector3(0, 0, 0.36f), new Vector3(0.07f, 0.045f, 0.96f), timber, batten);
+                AddWeapon(game, batten, "木方", "一截", 0.84f, 22f, 0.95f, false, Weapon.Material.Wood);
+            }
+
+            foreach (Vector3[] rest in new[]
+            {
+                new[] { new Vector3(-1.75f, 0.03f, 45.02f), new Vector3(1f, 0f, 0.3f) },
+                new[] { new Vector3(1.55f, 0.03f, 45.05f), new Vector3(0.3f, 0f, 1f) }
+            })
+            {
+                Transform brick = Holder("砖头", rest[0], rest[1]);
+                Kit.Box("Brick", new Vector3(0, 0, 0.04f), new Vector3(0.105f, 0.055f, 0.21f), fired, brick);
+                AddWeapon(game, brick, "砖头", "一块", 0.14f, 16f, 0.65f, false, Weapon.Material.Masonry);
+            }
+
+            Transform broom = Holder("扫帚", new Vector3(1.62f, 1.12f, 46.6f), new Vector3(-0.2f, -1f, 0f));
+            Kit.Tube("Pole", new Vector3(0, 0, -0.22f), new Vector3(0, 0, 1.02f), 0.012f, timber, broom, 7);
+            Kit.Box("Head", new Vector3(0, 0, 1.04f), new Vector3(0.3f, 0.045f, 0.06f), Art.Plain(new Color(0.16f, 0.4f, 0.26f), 0.5f), broom);
+            Kit.Box("Bristles", new Vector3(0, 0, 1.12f), new Vector3(0.28f, 0.03f, 0.12f), Art.Plain(new Color(0.62f, 0.52f, 0.3f), 0.1f), broom);
+            AddWeapon(game, broom, "扫帚", "一把", 1.15f, 7f, 0.85f, true, Weapon.Material.Plastic);
+
+            // The wrench lies flat among the west heap's spill; the stool, the extinguisher and
+            // the chair stand where they were dumped.
+            PropWeapon(game, "扳手", "一把", "adjustable_wrench", 1.4f, new Vector3(0, -0.7f, 0), Vector3.up,
+                new Vector3(-2.3f, 0.025f, 44.9f), Quaternion.Euler(90, 40, 0), 18f, 0.7f, false, Weapon.Material.Metal);
+            PropWeapon(game, "木凳", "一张", "wooden_stool_01", 1f, new Vector3(0.75f, -1f, 0.75f), new Vector3(-0.3f, 1f, -0.3f),
+                new Vector3(-1.75f, 0f, 44.62f), Quaternion.Euler(0, 25, 0), 20f, 1.1f, true, Weapon.Material.Wood);
+            PropWeapon(game, "灭火器", "一个", "korean_fire_extinguisher_01", 1f, new Vector3(0, 1f, 0), Vector3.down,
+                new Vector3(1.72f, 0f, 45.0f), Quaternion.Euler(0, -60, 0), 28f, 1.15f, true, Weapon.Material.Metal);
+            PropWeapon(game, "塑料椅", "一把", "plastic_monobloc_chair_01", 1f, new Vector3(0, 1f, -0.9f), new Vector3(0, -0.83f, 0.56f),
+                new Vector3(1.62f, 0f, 46.95f), Quaternion.Euler(0, -95, 0), 9f, 1.05f, true, Weapon.Material.Plastic);
         }
 
         // The yard gate at the end of the alley: a heavy sliding leaf of sheet steel below and
@@ -1260,18 +1592,20 @@ namespace DontForgetMe
             Kit.Prop("plastic_monobloc_chair_01", new Vector3(6.9f, 0, 58.2f), -120, root, true);
             Kit.Prop("utility_box_01", new Vector3(-8.2f, 0, 70.2f), 90, root, true);
             Kit.Prop("trashbag", new Vector3(-7.9f, 0, 69.3f), 45, root);
-            Kit.Prop("street_lamp_01", new Vector3(-3.2f, 0, 70.9f), 0, root, false, 1.25f);
+            StreetLamp(new Vector3(-3.2f, 0, 70.9f), 0, false);
         }
 
         private static void BuildBackdrop()
         {
             // Distant blocks are simple boxes carrying a window pattern; haze and focus do the rest.
+            // They cast no shadows, so none may stand between the low sun and anywhere a person
+            // can be: the avenue to the south (x from about -6 to 31 beyond z = -25) is left open.
             Texture2D pattern = Art.Own(new Texture2D(128, 128, TextureFormat.RGB24, true));
             Color[] pixels = new Color[128 * 128];
             System.Random random = new System.Random(3);
             Color wallColour = new Color(0.62f, 0.60f, 0.56f), window = new Color(0.10f, 0.12f, 0.14f);
             bool[] lit = new bool[64];
-            for (int i = 0; i < lit.Length; i++) lit[i] = random.Next(12) == 0;
+            for (int i = 0; i < lit.Length; i++) lit[i] = random.Next(4) == 0;
             for (int y = 0; y < 128; y++)
                 for (int x = 0; x < 128; x++)
                 {
@@ -1285,8 +1619,8 @@ namespace DontForgetMe
             float[,] blocks =
             {
                 { -34, 4, 18, 30, 26 }, { -32, 34, 16, 26, 38 }, { -38, 66, 22, 30, 30 }, { 33, 0, 18, 28, 34 }, { 36, 32, 20, 32, 24 },
-                { 34, 68, 18, 30, 42 }, { -14, 104, 26, 16, 34 }, { 16, 108, 24, 18, 46 }, { 0, 132, 60, 14, 28 }, { -16, -36, 28, 18, 40 },
-                { 18, -40, 26, 18, 30 }, { -52, 100, 24, 24, 52 }, { 52, 104, 24, 24, 36 }, { 0, -64, 70, 14, 24 }
+                { 34, 68, 18, 30, 42 }, { -14, 104, 26, 16, 34 }, { 16, 108, 24, 18, 46 }, { 0, 132, 60, 14, 28 }, { -21, -36, 28, 18, 40 },
+                { 46, -40, 26, 18, 30 }, { -52, 100, 24, 24, 52 }, { 52, 104, 24, 24, 36 }, { -24, -64, 32, 14, 24 }, { 48, -64, 30, 14, 24 }
             };
             for (int i = 0; i < blocks.GetLength(0); i++)
             {
@@ -1298,7 +1632,7 @@ namespace DontForgetMe
             // A facade to close the view through the courtyard gateway.
             Facade("BeyondBlock", new Vector3(14f, 0, 90f), 180, 28, S("yellow_plaster"), 4, "SGSDSGSS",
                 new[] { "旅社", "五金", "小吃", null, "服装", "通讯", "茶叶", "日杂" }, 404, 8f, 3.5f, true);
-            Kit.Prop("street_lamp_01", new Vector3(5f, 0, 78f), 0, root, false, 1.25f);
+            StreetLamp(new Vector3(5f, 0, 78f), 0, false);
             Kit.Prop("covered_car", new Vector3(-6.5f, 0, 80.5f), 95, root);
         }
 
@@ -1345,19 +1679,10 @@ namespace DontForgetMe
             game.ResidentB.Body.Stance("m_gestic_talk_neutral_01");
             game.ResidentB.Body.LookTarget = keeper.transform;
 
-            // The hammer old Zhou works the gate with; it only shows while he is using it.
-            Transform grip = game.Zhou.Body.Bone(HumanBodyBones.RightHand);
-            if (grip != null)
-            {
-                Vector3 handle = game.Zhou.transform.forward;
-                GameObject hammer = Kit.Prop("cross_pein_hammer", Vector3.zero, Vector3.one, Quaternion.identity, null, false, Vector3.zero);
-                hammer.transform.SetPositionAndRotation(grip.position + game.Zhou.transform.right * 0.08f - Vector3.up * 0.02f,
-                    Quaternion.LookRotation(Vector3.down, handle));
-                hammer.transform.SetParent(grip, true);
-                SetLayer(hammer, 8);
-                hammer.SetActive(false);
-                game.ZhouTool = hammer;
-            }
+            // The hammer old Zhou works the gate with, and turns on anyone who gets hold of him.
+            game.ZhouHammer = PropWeapon(null, "锤子", "把", "cross_pein_hammer", 1.15f, new Vector3(0, -0.6f, 0), Vector3.up,
+                game.Zhou.transform.position, Quaternion.identity, 24f, 0.75f, false, Weapon.Material.Metal);
+            game.ZhouHammer.Root.gameObject.SetActive(false);
 
             game.AddInteraction(game.Zhou.gameObject, "和修理铺的人说话",
                 () => game.State.Phase == OpeningPhase.Street, game.MeetZhou);

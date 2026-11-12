@@ -3,11 +3,11 @@ using UnityEngine;
 namespace DontForgetMe
 {
     // One of the people who no longer answer when called. They close in on whoever they have
-    // fixed on, rear back, and throw themselves forward; a shove sends them reeling but never
-    // puts them down for good.
+    // fixed on, rear back, and throw themselves forward. A shove only sends them reeling; being
+    // hit with something wears them down, and enough of it puts them on the ground to stay.
     public sealed class Hostile : MonoBehaviour
     {
-        public enum Mode { Idle, Arrive, Advance, Windup, Recover, Reel, Down, Pound }
+        public enum Mode { Idle, Arrive, Advance, Windup, Recover, Reel, Down, Pound, Fallen }
 
         public ActorMotor Motor { get; private set; }
         public Mode State { get; private set; } = Mode.Idle;
@@ -17,6 +17,12 @@ namespace DontForgetMe
         public bool Dangerous => State == Mode.Advance || State == Mode.Windup || State == Mode.Recover;
         public float Pace { get; set; } = 1.7f;
         public float Windup { get; set; } = 0.65f;
+        public float Health { get; private set; } = 100f;
+        public float MaxHealth { get; private set; } = 100f;
+        public float HurtAt { get; private set; } = -100f;
+        public bool Fallen => State == Mode.Fallen;
+        // The worse hurt, the slower they come.
+        private float Stride => Pace * Mathf.Lerp(0.6f, 1f, Health / MaxHealth);
 
         private const float Reach = 1.3f;
         private Siege siege;
@@ -31,29 +37,60 @@ namespace DontForgetMe
         private Vector3 poundMark;
         private bool frontRow;
         private bool beating;
+        private float stoop;
+        private float fellAt;
+        private float fellSide;
+        private bool still;
 
         public void Configure(Siege owner, ActorMotor motor)
         {
             siege = owner;
             Motor = motor;
-            Motor.Speed = Pace;
+            Motor.Speed = Stride;
+            stoop = motor.Body.Stoop;
+        }
+
+        public void Toughen(float health)
+        {
+            Health = MaxHealth = health;
+        }
+
+        // Struck with something. Returns true if that was what put them down.
+        public bool Hurt(float damage)
+        {
+            if (Fallen || damage <= 0) return false;
+            Health = Mathf.Max(0f, Health - damage);
+            HurtAt = Time.time;
+            Motor.Body.Stoop = stoop + (1f - Health / MaxHealth) * 16f;
+            if (Health > 0) return false;
+            State = Mode.Fallen;
+            fellAt = Time.time;
+            fellSide = Random.value < 0.5f ? -1f : 1f;
+            StopBeating();
+            Motor.Collapse();
+            CharacterAnimator body = Motor.Body;
+            body.Menace = 0;
+            body.LookTarget = null;
+            body.Stance("m_crouch_idle");
+            siege.Fell(this);
+            return true;
         }
 
         // Walk a fixed route first (round the corner into the alley), then go for people.
         public void Arrive(params Vector3[] route)
         {
             State = Mode.Arrive;
-            Motor.Speed = Pace;
+            Motor.Speed = Stride;
             Motor.GoVia(route);
         }
 
         public void Advance()
         {
-            if (State == Mode.Reel || State == Mode.Down) return;
+            if (State == Mode.Reel || State == Mode.Down || Fallen) return;
             StopBeating();
             poundSpot = Vector3.zero;
             State = Mode.Advance;
-            Motor.Speed = Pace;
+            Motor.Speed = Stride;
         }
 
         // Go to the shut gate and beat on it. Those in the second row can only press forward.
@@ -62,9 +99,9 @@ namespace DontForgetMe
             poundSpot = spot;
             poundMark = mark;
             frontRow = front;
-            if (State == Mode.Reel || State == Mode.Down) return;
+            if (State == Mode.Reel || State == Mode.Down || Fallen) return;
             State = Mode.Pound;
-            Motor.Speed = Pace;
+            Motor.Speed = Stride;
             Motor.GoTo(spot);
         }
 
@@ -73,6 +110,12 @@ namespace DontForgetMe
             direction.y = 0;
             if (direction.sqrMagnitude < 0.0001f) direction = -transform.forward;
             direction.Normalize();
+            if (Fallen)
+            {
+                // A body on the ground is only shifted, as when the gate pushes it clear.
+                Motor.Throw(direction * 2.2f, 0f);
+                return;
+            }
             State = Mode.Reel;
             reelAt = Time.time;
             reelPower = power;
@@ -104,6 +147,21 @@ namespace DontForgetMe
                 case Mode.Idle:
                     body.Menace = Mathf.MoveTowards(body.Menace, 0f, dt);
                     break;
+
+                case Mode.Fallen:
+                {
+                    // Knees give way, then over onto one side, and no further movement after that.
+                    if (still) break;
+                    float k = Mathf.SmoothStep(0f, 1f, (Time.time - fellAt - 0.25f) / 0.7f);
+                    body.transform.localRotation = Quaternion.Euler(0, 0, fellSide * 84f * k);
+                    body.transform.localPosition = new Vector3(0, -0.03f + 0.15f * k, 0);
+                    if (Time.time - fellAt > 1.5f)
+                    {
+                        still = true;
+                        body.Freeze();
+                    }
+                    break;
+                }
 
                 case Mode.Arrive:
                     if (!Motor.HasDestination) Advance();
@@ -176,7 +234,6 @@ namespace DontForgetMe
                         State = Mode.Down;
                         until = Time.time + Random.Range(1.8f, 2.6f);
                         body.Stance("m_crouch_idle", until - Time.time);
-                        siege.Thud(transform.position, 0.5f);
                         break;
                     }
                     if (!Motor.Reeling) Resume();
@@ -228,7 +285,7 @@ namespace DontForgetMe
             else
             {
                 State = Mode.Advance;
-                Motor.Speed = Pace;
+                Motor.Speed = Stride;
             }
         }
     }
