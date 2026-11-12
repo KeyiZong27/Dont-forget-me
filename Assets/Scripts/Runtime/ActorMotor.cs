@@ -94,7 +94,6 @@ namespace DontForgetMe
     {
         public string DisplayName { get; set; }
         public string Identity { get; set; }
-        public Transform FollowTarget { get; set; }
         public Vector3 FollowOffset { get; set; }
         public float Speed { get; set; } = 3.2f;
         // Pace used when "Hurry" is set, or when a follower has fallen well behind.
@@ -115,6 +114,17 @@ namespace DontForgetMe
         public bool HitScenery { get; private set; }
         public float Weight { get => body.Weight; set => body.Weight = value; }
 
+        public Transform FollowTarget
+        {
+            get { return followTarget; }
+            set
+            {
+                followTarget = value;
+                if (value != null) stopped = false;
+            }
+        }
+
+        private Transform followTarget;
         private CharacterController controller;
         private Crowd.Body body;
         private float verticalSpeed;

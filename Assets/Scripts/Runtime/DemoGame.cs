@@ -44,6 +44,7 @@ namespace DontForgetMe
 
         public static DemoGame Instance { get; private set; }
         public OpeningState State { get; private set; }
+        public JourneyState Journey { get; private set; }
         public MemoryNetwork Memories { get; private set; }
         public ThirdPersonPlayer Player { get; set; }
         public Camera View { get; set; }
@@ -65,6 +66,10 @@ namespace DontForgetMe
         public bool IsPaused => !started || paused;
         public bool HasStarted => started;
         public bool IsFailed { get; private set; }
+        public bool IsComplete => Journey.Phase == JourneyPhase.Complete;
+        public bool PathSceneStarted => pathSceneStarted;
+        public bool DoorSlammed => doorSlammed;
+        public bool FarewellStarted => farewellStarted;
         public Interactable Nearest { get; private set; }
         public string CurrentCaption { get; private set; }
         public float StartedAt { get; private set; }
@@ -115,8 +120,7 @@ namespace DontForgetMe
         private Material[] lampGlow;
         private Material lampDead;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void Bootstrap()
+        private static void Bootstrap(Scene scene, LoadSceneMode mode)
         {
             // Restarting reloads the scene, which destroys the game object; build it again each time.
             SceneManager.sceneLoaded -= OnSceneLoaded;
@@ -177,7 +181,7 @@ namespace DontForgetMe
 
         public void TogglePause()
         {
-            if (!started || IsFailed || State.Phase == OpeningPhase.Complete) return;
+            if (!started || IsFailed || IsComplete) return;
             paused = !paused;
             Time.timeScale = paused ? 0 : 1;
             SetCursor(!paused);
@@ -224,6 +228,7 @@ namespace DontForgetMe
                     UpdateEscape();
                     break;
             }
+            if (State.Phase == OpeningPhase.Complete) UpdateJourney();
         }
 
         private void UpdateMood()
@@ -896,6 +901,7 @@ namespace DontForgetMe
         {
             get
             {
+                if (State.Phase == OpeningPhase.Complete) return JourneyObjective;
                 switch (State.Phase)
                 {
                     case OpeningPhase.Street: return "经过街边修理铺，和修椅子的人说说话。\n也可以先到水碗旁照顾狗。";
@@ -917,6 +923,7 @@ namespace DontForgetMe
         {
             get
             {
+                if (State.Phase == OpeningPhase.Complete) return JourneyObjectivePosition;
                 switch (State.Phase)
                 {
                     case OpeningPhase.Street: return Zhou.transform.position;
