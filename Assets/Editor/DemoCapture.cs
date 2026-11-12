@@ -30,7 +30,7 @@ namespace DontForgetMe.Editor
             EditorApplication.update += () =>
             {
                 if (!SessionState.GetBool(Flag, false)) return;
-                bool timedOut = EditorApplication.timeSinceStartup - started > 420;
+                bool timedOut = EditorApplication.timeSinceStartup - started > 780;
                 if (!EditorApplication.isPlaying && !EditorApplication.isPlayingOrWillChangePlaymode
                     && EditorApplication.timeSinceStartup - started > 30)
                     timedOut = true;

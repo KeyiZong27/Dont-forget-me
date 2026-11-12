@@ -236,15 +236,20 @@ namespace DontForgetMe
             if (game.State.Phase == OpeningPhase.Repair)
             {
                 float progress = game.State.RepairProgress;
-                Text(new Rect(width / 2 - 200, 34, 400, 22), "老周正在修门", smallCentre);
+                bool stalled = game.RepairStalled;
+                // While someone has hold of him the bar stops and says so.
+                float pulse = stalled ? 0.6f + 0.4f * Mathf.Sin(Time.time * 9f) : 1f;
+                Text(new Rect(width / 2 - 200, 34, 400, 22), stalled ? "老周被缠住了 · 门停了" : "老周正在砸开锈死的链子、校正轨道", smallCentre, pulse);
                 Draw(white, new Rect(width / 2 - 150, 62, 300, 3), new Color(1, 1, 1, 0.18f));
-                Draw(white, new Rect(width / 2 - 150, 62, 300 * progress, 3), Amber);
+                Draw(white, new Rect(width / 2 - 150, 62, 300 * progress, 3), stalled ? new Color(0.82f, 0.36f, 0.30f, pulse) : Amber);
             }
 
             bool live = !game.IsPaused && !game.IsFailed && game.State.Phase != OpeningPhase.Complete;
             if (live)
             {
-                DrawMarker(game.ObjectivePosition + Vector3.up * 2.25f, width, height, scale, game);
+                // During the fight the player is meant to be facing the alley, not a marker behind them.
+                if (game.State.Phase != OpeningPhase.Repair)
+                    DrawMarker(game.ObjectivePosition + Vector3.up * 2.25f, width, height, scale, game);
                 if (game.Nearest != null)
                 {
                     Vector2 size = prompt.CalcSize(new GUIContent(game.Nearest.Prompt)) / k;
@@ -325,7 +330,7 @@ namespace DontForgetMe
             Draw(white, new Rect(x, y + 82, 72, 2), new Color(Amber.r, Amber.g, Amber.b, alpha));
             string text = success
                 ? "她、狗、老周，还有街坊，都过来了。\n\n老周准备往服务站方向走。他没有承诺那里安全，只说至少有能遮雨的地方。你们决定先与他同行。\n\n开场 Demo 到此结束。没有人被剧情强制遗忘。"
-                : "可以推开对方、绕行，也可以提前站到门边等待通过。\n目标是争取修门时间，不需要正面打倒对方。";
+                : "别站着让他们围住：F 只推得开面前够得着的人，推完就换位置。\n街坊和她也在挡。先把缠住老周的人弄开，门才开得动；不需要打倒谁。";
             Text(new Rect(x, y + 104, 660, 170), text, body, alpha);
             if (success)
                 Text(new Rect(x, y + 268, 660, 40),

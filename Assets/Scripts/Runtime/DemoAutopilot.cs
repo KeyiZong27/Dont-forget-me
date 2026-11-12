@@ -28,6 +28,9 @@ namespace DontForgetMe
         private void Start()
         {
             Application.runInBackground = true;
+            // Without a display there is no frame pacing, and thousands of frames a second is not
+            // what anyone plays at. Step the game at a fixed, ordinary rate instead.
+            if (Application.isBatchMode) Time.captureFramerate = 45;
             game = DemoGame.Instance;
             player = game.Player;
             string[] args = Environment.GetCommandLineArgs();
@@ -63,7 +66,7 @@ namespace DontForgetMe
             elapsed += Time.unscaledDeltaTime;
             if (frames > 30) slowest = Mathf.Max(slowest, Time.unscaledDeltaTime);
             // Keep the camera loosely behind the direction of travel, as a player would.
-            if (player.PlanarSpeed > 0.5f)
+            if (player.PlanarSpeed > 0.5f && game.State.Phase != OpeningPhase.Repair)
                 player.Yaw = Mathf.LerpAngle(player.Yaw, player.Heading, 1f - Mathf.Exp(-2.5f * Time.deltaTime));
         }
 
@@ -80,6 +83,12 @@ namespace DontForgetMe
             Note("PROBLEM: " + message);
         }
 
+        private static Vector3 Flat(Vector3 value)
+        {
+            value.y = 0;
+            return value;
+        }
+
         private IEnumerator Walk(Vector3 target, float stopWithin, float timeout, bool run = false)
         {
             waypoint = target;
@@ -87,9 +96,7 @@ namespace DontForgetMe
             float until = Time.time + timeout;
             while (Time.time < until)
             {
-                Vector3 to = target - player.transform.position;
-                to.y = 0;
-                if (to.magnitude <= stopWithin) break;
+                if (Flat(target - player.transform.position).magnitude <= stopWithin) break;
                 yield return null;
             }
             if (Time.time >= until) Problem("could not reach " + target + ", stopped at " + player.transform.position);
@@ -110,12 +117,13 @@ namespace DontForgetMe
                 (game.Nearest != null ? game.Nearest.Prompt : "nothing"));
         }
 
-        private IEnumerator Shot(string name, float yaw = float.NaN, float pitch = float.NaN)
+        // "settle" is how many frames to let the camera and anti-aliasing converge first; a
+        // picture of something in mid-movement passes a small number.
+        private IEnumerator Shot(string name, float yaw = float.NaN, float pitch = float.NaN, int settle = 24)
         {
             if (!float.IsNaN(yaw)) player.Yaw = yaw;
             if (!float.IsNaN(pitch)) player.Pitch = pitch;
-            // Let the camera settle and temporal anti-aliasing converge on the new view.
-            for (int i = 0; i < 24; i++) yield return null;
+            for (int i = 0; i < settle; i++) yield return null;
             string path = Path.Combine(folder, (shot++).ToString("00") + "_" + name + ".png");
             if (Application.isBatchMode)
             {
@@ -143,6 +151,20 @@ namespace DontForgetMe
             Note("shot " + Path.GetFileName(path));
         }
 
+        private IEnumerator Take(Piece piece)
+        {
+            Vector3 at = piece.Root.transform.position;
+            yield return Walk(new Vector3(at.x, 0, at.z - 1.25f), 0.35f, 10);
+            yield return Use(piece.Root.GetComponent<Interactable>().Prompt, 5, () => piece.Claimed);
+        }
+
+        private IEnumerator SetDown(Piece piece)
+        {
+            float until = Time.time + 25f;
+            while (Time.time < until && (!piece.Moved || player.Busy)) yield return null;
+            if (!piece.Moved) Problem(piece.Id + " was never set down");
+        }
+
         private IEnumerator Run()
         {
             yield return new WaitForSecondsRealtime(3.5f);
@@ -160,11 +182,16 @@ namespace DontForgetMe
 
             yield return Walk(new Vector3(-3.4f, 0, 11.6f), 0.4f, 15);
             yield return Shot("workshop_wide", -48, 8);
+            yield return Walk(new Vector3(-6.4f, 0, 10.9f), 0.4f, 10);
+            yield return Shot("general_store", -90, 8);
             yield return Walk(new Vector3(-5.9f, 0, 13.2f), 0.3f, 10);
             yield return Shot("workshop_close", -35, 12);
             yield return Shot("zhou", -100, 6);
             yield return Use("修理铺的人", 4, () => game.State.Phase != OpeningPhase.Street);
-            yield return new WaitForSeconds(3.2f);
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot("startled", -116, 6, 2);
+            yield return new WaitForSeconds(2.4f);
+            yield return Shot("shop_closing", -116, 6, 2);
             yield return Shot("riot_begins", 30, 8);
 
             float patience = Time.time + 25f;
@@ -181,57 +208,175 @@ namespace DontForgetMe
             yield return Shot("alley_in", 0, 4);
             yield return Walk(new Vector3(0, 0, 38.5f), 0.4f, 15);
             yield return Shot("alley_mid", 0, 0);
+            yield return Walk(new Vector3(0.2f, 0, 42.4f), 0.3f, 12);
+            yield return Shot("gate_and_pile", 2, 8);
+
+            // The heavy pieces, front to back. The neighbours have to clear what lies in front first.
+            int carried = 0;
+            foreach (Piece piece in game.Pile)
+            {
+                if (!piece.Heavy) continue;
+                patience = Time.time + 70f;
+                float grace = Time.time + 16f;
+                while (Time.time < patience && !game.CanMove(piece))
+                {
+                    // A neighbour slow to clear what lies in front: take it ourselves, as a player would.
+                    Piece blocking = null;
+                    if (Time.time > grace && !player.Busy && piece.After != null)
+                        foreach (Piece first in piece.After)
+                            if (game.CanMove(first)) blocking = first;
+                    if (blocking != null)
+                    {
+                        Note("carrying " + blocking.Id + " for the neighbours");
+                        yield return Take(blocking);
+                        yield return SetDown(blocking);
+                    }
+                    yield return null;
+                }
+                if (!game.CanMove(piece))
+                {
+                    Problem("could not get at " + piece.Id + "; the pieces in front of it were never cleared");
+                    continue;
+                }
+                if (carried == 0)
+                {
+                    yield return Walk(new Vector3(0, 0, 43.6f), 0.4f, 10);
+                    yield return Shot("neighbours_clearing", 0, 10);
+                }
+                yield return Take(piece);
+                if (carried == 0)
+                {
+                    yield return new WaitForSeconds(1.5f);
+                    yield return Shot("carrying", float.NaN, 14, 2);
+                }
+                if (carried == 3)
+                {
+                    yield return new WaitForSeconds(1.3f);
+                    yield return Shot("wheeling_truck", float.NaN, 14, 2);
+                }
+                yield return SetDown(piece);
+                carried++;
+            }
+            if (game.State.ClearedDebrisCount != game.State.DebrisRequired)
+                Problem("pile not cleared: " + game.State.ClearedDebrisCount + " of " + game.State.DebrisRequired);
+            yield return Walk(new Vector3(0, 0, 43.4f), 0.4f, 10);
             yield return Shot("alley_look_back", 180, 4);
+            yield return Shot("pile_cleared", 2, 8);
 
-            yield return Walk(new Vector3(-0.9f, 0, 42.7f), 0.3f, 12);
-            yield return Shot("gate_and_debris", 5, 10);
-            yield return Use("搬开挡路", 4, () => game.State.ClearedDebrisCount >= 1);
-            yield return new WaitForSeconds(1.2f);
-            yield return Walk(new Vector3(0.9f, 0, 42.7f), 0.3f, 12);
-            yield return Use("搬开挡路", 4, () => game.State.ClearedDebrisCount >= 2);
-            yield return new WaitForSeconds(1.2f);
-
-            yield return Walk(new Vector3(0.3f, 0, 45.2f), 0.3f, 12);
             patience = Time.time + 20f;
-            while (Time.time < patience && Vector3.Distance(game.Zhou.transform.position, new Vector3(-0.8f, game.Zhou.transform.position.y, 46)) > 0.9f)
-                yield return null;
-            yield return Use("开始修理", 6, () => game.State.Phase != OpeningPhase.Debris);
-            yield return new WaitForSeconds(1.5f);
-            yield return Shot("repair", -20, 8);
+            while (Time.time < patience && Flat(game.Zhou.transform.position - DemoGame.ZhouWork).magnitude > 0.8f) yield return null;
+            yield return Walk(new Vector3(0.0f, 0, 46.2f), 0.35f, 12);
+            yield return Shot("gate_close_up", 12, 6);
+            yield return Use("帮老周", 6, () => game.State.Phase != OpeningPhase.Debris);
+            yield return new WaitForSeconds(2.5f);
+            yield return Shot("repair", 30, 10);
             yield return Shot("threat_far", 180, 2);
 
-            bool pictured = false;
-            patience = Time.time + 40f;
+            // Hold the line: go for whoever is on old Zhou or closest, shove when they are in reach.
+            // Halfway through, stand back for a few seconds, the way a player who loses track of
+            // the crowd would, to see what happens to the gate work when nobody covers for it.
+            bool pushed = false, crowded = false, stalled = false, idled = false;
+            float idleUntil = -1f;
+            Vector3 home = new Vector3(0.1f, 0, 46.1f), aside = new Vector3(-0.7f, 0, 46.6f);
+            float began = Time.time;
+            patience = Time.time + 200f;
             while (game.State.Phase == OpeningPhase.Repair && Time.time < patience && !game.IsFailed)
             {
-                player.Yaw = Mathf.LerpAngle(player.Yaw, 180, 0.1f);
-                if (player.TryPush() && !pictured)
+                player.Yaw = Mathf.LerpAngle(player.Yaw, 180, 0.08f);
+                if (!idled && game.State.RepairProgress > 0.5f)
                 {
-                    pictured = true;
-                    yield return Shot("push", 180, 6);
+                    idled = true;
+                    idleUntil = Time.time + 12f;
+                    Note("standing back at " + game.State.RepairProgress.ToString("P0"));
+                }
+                Hostile urgent = game.Siege.Nearest(game.Zhou.transform.position, 2.4f, true);
+                if (urgent == null) urgent = game.Siege.Nearest(player.transform.position, 3.2f, true);
+                // Standing back means stepping out of the lane altogether, until the gate work stops or it starts to hurt.
+                if (Time.time < idleUntil && !stalled && player.Health > 55f)
+                    waypoint = Flat(aside - player.transform.position).magnitude > 0.4f ? aside : (Vector3?)null;
+                else if (urgent != null)
+                {
+                    Vector3 to = Flat(urgent.transform.position - player.transform.position);
+                    waypoint = to.magnitude > 1.25f ? urgent.transform.position - to.normalized : (Vector3?)null;
+                    if (to.magnitude < 1.45f && player.TryPush() && !pushed)
+                    {
+                        pushed = true;
+                        waypoint = null;
+                        yield return new WaitForSeconds(0.17f);
+                        yield return Shot("push", float.NaN, 8, 1);
+                        yield return new WaitForSeconds(0.3f);
+                        yield return Shot("reeling", float.NaN, 8, 1);
+                    }
+                }
+                else waypoint = Flat(home - player.transform.position).magnitude > 0.5f ? home : (Vector3?)null;
+                if (!stalled && game.RepairStalled && game.State.RepairProgress > 0.05f)
+                {
+                    stalled = true;
+                    Note("gate work interrupted at " + game.State.RepairProgress.ToString("P0") + ", health " + player.Health.ToString("F0"));
+                    yield return Shot("zhou_grabbed", 0, 10, 2);
+                }
+                if (!crowded && game.Siege.Hostiles.Count >= 6 && game.State.RepairProgress > 0.72f)
+                {
+                    crowded = true;
+                    waypoint = null;
+                    yield return Shot("crowd", 180, 4, 3);
+                    yield return Shot("cowering", -40, 10, 3);
                 }
                 yield return null;
             }
-            if (game.State.Phase != OpeningPhase.Regroup) Problem("repair did not finish; phase is " + game.State.Phase);
-            player.TryPush();
-            yield return Shot("gate_open", 0, 8);
-            yield return Walk(new Vector3(0, 0, 46.6f), 0.4f, 8, true);
-            yield return Walk(new Vector3(0, 0, 50.8f), 0.4f, 8, true);
-            yield return Walk(new Vector3(-0.6f, 0, 55.8f), 0.5f, 10, true);
+            waypoint = null;
+            if (game.State.Phase != OpeningPhase.Regroup) Problem("gate was never opened; phase is " + game.State.Phase + ", progress " + game.State.RepairProgress);
+            if (!stalled) Note("the gate work was never interrupted in this run");
+            Note("gate opened after " + (Time.time - began).ToString("F0") + " s of holding, with " + game.Siege.Hostiles.Count + " in the alley, "
+                + player.ShovesLanded + " shoves landed, health " + player.Health.ToString("F0"));
+            yield return Shot("gate_open", 0, 8, 3);
+            yield return Walk(new Vector3(0.2f, 0, 47.2f), 0.5f, 8, true);
+            yield return Walk(new Vector3(0.1f, 0, 50.8f), 0.5f, 8, true);
+            yield return Shot("holding_the_door", 180, 8, 2);
+            yield return Walk(new Vector3(0.4f, 0, 53.2f), 0.5f, 10, true);
+
+            // Anyone who followed them in has to be put back outside before the gate will close.
+            patience = Time.time + 60f;
+            bool closingShot = false;
+            while (!game.GateShut && Time.time < patience && !game.IsFailed)
+            {
+                player.Yaw = Mathf.LerpAngle(player.Yaw, 180, 0.08f);
+                Hostile intruder = game.Siege.Nearest(player.transform.position, 12f, false);
+                if (intruder != null && intruder.transform.position.z > 49.3f)
+                {
+                    Vector3 to = Flat(intruder.transform.position - player.transform.position);
+                    waypoint = to.magnitude > 1.25f ? intruder.transform.position + Vector3.forward : (Vector3?)null;
+                    if (to.magnitude < 1.45f && to.z < 0) player.TryPush();
+                }
+                else waypoint = null;
+                if (!closingShot && Mathf.Abs(game.Gate.transform.position.x) < 1.6f && Mathf.Abs(game.Gate.transform.position.x) > 0.3f)
+                {
+                    closingShot = true;
+                    yield return Shot("gate_closing", 180, 8, 1);
+                }
+                yield return null;
+            }
+            waypoint = null;
+            if (!game.GateShut) Problem("the gate never shut: " + Where());
+            yield return new WaitForSeconds(2.5f);
+            yield return Shot("gate_shut", 180, 6);
+            yield return Walk(game.Zhou.transform.position + new Vector3(0.9f, 0, -1.1f), 0.6f, 15);
             patience = Time.time + 25f;
             while (Time.time < patience && !game.EveryonePresent()) yield return null;
             if (!game.EveryonePresent()) Problem("not everyone came through the gate: " + Where());
             yield return new WaitForSeconds(1.5f);
             yield return Shot("courtyard", 0, 8);
-            yield return Shot("courtyard_back", 170, 6);
+            yield return Shot("courtyard_back", 178, 4);
             yield return Use("确认大家", 10, () => game.State.Phase == OpeningPhase.Complete);
             yield return new WaitForSeconds(3f);
             yield return Shot("together", 15, 10);
             yield return new WaitForSeconds(DemoGame.EndPanelDelay);
             yield return Shot("end_card");
 
-            Note(string.Format("{0}x{1}, average {2:F1} fps, slowest frame {3:F0} ms, health {4:F0}",
-                Screen.width, Screen.height, elapsed > 0 ? frames / elapsed : 0, slowest * 1000f, player.Health));
+            Note(Application.isBatchMode
+                ? "no display: stepped at a fixed 45 frames per second, so frame rate was not measured; health " + player.Health.ToString("F0")
+                : string.Format("{0}x{1}, average {2:F1} fps, slowest frame {3:F0} ms, health {4:F0}",
+                    Screen.width, Screen.height, elapsed > 0 ? frames / elapsed : 0, slowest * 1000f, player.Health));
             restarted = true;
             game.Restart();
         }
@@ -241,7 +386,8 @@ namespace DontForgetMe
         {
             shot = 90;
             yield return new WaitForSecondsRealtime(3f);
-            if (game.HasStarted || game.State.Phase != OpeningPhase.Street || game.Player == null || game.Zhou == null)
+            if (game.HasStarted || game.State.Phase != OpeningPhase.Street || game.Player == null || game.Zhou == null
+                || game.Siege.Hostiles.Count != 0)
                 Problem("restart did not return to a fresh title screen");
             yield return Shot("after_restart");
             Note("problems " + Problems);
@@ -253,9 +399,11 @@ namespace DontForgetMe
 
         private string Where()
         {
-            string text = "";
+            string text = "player " + player.transform.position + "  ";
             foreach (ActorMotor actor in new[] { game.Woman, game.Dog, game.Zhou, game.ResidentA, game.ResidentB })
                 text += actor.Identity + " " + actor.transform.position + "  ";
+            foreach (Hostile hostile in game.Siege.Hostiles)
+                text += hostile.name + " " + hostile.State + " z" + hostile.transform.position.z.ToString("F1") + "  ";
             return text;
         }
     }

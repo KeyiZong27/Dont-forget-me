@@ -80,6 +80,32 @@ namespace DontForgetMe.Tests
             Assert.That(state.Finish(true), Is.False);
         }
 
+        [Test]
+        public void ALargerPileAndLongerRepairAreHonoured()
+        {
+            OpeningState state = new OpeningState(4, 40f);
+            state.MeetZhou();
+            state.Reunite();
+            state.EnterAlley();
+            foreach (string id in new[] { "a", "b", "c" }) Assert.That(state.ClearDebris(id), Is.True);
+            Assert.That(state.StartRepair(), Is.False);
+            Assert.That(state.ClearDebris("d"), Is.True);
+            Assert.That(state.ClearDebris("e"), Is.False);
+            Assert.That(state.StartRepair(), Is.True);
+            state.TickRepair(39f);
+            Assert.That(state.Phase, Is.EqualTo(OpeningPhase.Repair));
+            state.TickRepair(1.01f);
+            Assert.That(state.Phase, Is.EqualTo(OpeningPhase.Regroup));
+        }
+
+        [TestCase(0, 14f)]
+        [TestCase(2, 0f)]
+        [TestCase(2, float.NaN)]
+        public void InvalidOpeningSetupFailsExplicitly(int debris, float seconds)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new OpeningState(debris, seconds));
+        }
+
         [TestCase(-1f)]
         [TestCase(float.NaN)]
         [TestCase(float.PositiveInfinity)]

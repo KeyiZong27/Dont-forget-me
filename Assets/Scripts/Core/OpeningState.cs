@@ -18,6 +18,20 @@ namespace DontForgetMe
     {
         private readonly HashSet<string> clearedDebris = new HashSet<string>();
 
+        // How many obstacles have to be moved before the gate can be worked on, and how many
+        // seconds of uninterrupted work the gate then takes.
+        public int DebrisRequired { get; }
+        public float RepairSeconds { get; }
+
+        public OpeningState(int debrisRequired = 2, float repairSeconds = 14f)
+        {
+            if (debrisRequired < 1) throw new ArgumentOutOfRangeException(nameof(debrisRequired));
+            if (float.IsNaN(repairSeconds) || float.IsInfinity(repairSeconds) || repairSeconds <= 0)
+                throw new ArgumentOutOfRangeException(nameof(repairSeconds));
+            DebrisRequired = debrisRequired;
+            RepairSeconds = repairSeconds;
+        }
+
         public OpeningPhase Phase { get; private set; } = OpeningPhase.Street;
         public bool GaveWater { get; private set; }
         public float RepairProgress { get; private set; }
@@ -49,13 +63,13 @@ namespace DontForgetMe
         {
             if (string.IsNullOrWhiteSpace(id))
                 throw new ArgumentException("Debris needs a stable identifier.", nameof(id));
-            if (Phase != OpeningPhase.Debris || clearedDebris.Count >= 2) return false;
+            if (Phase != OpeningPhase.Debris || clearedDebris.Count >= DebrisRequired) return false;
             return clearedDebris.Add(id);
         }
 
         public bool StartRepair()
         {
-            if (clearedDebris.Count != 2) return false;
+            if (clearedDebris.Count != DebrisRequired) return false;
             return Advance(OpeningPhase.Debris, OpeningPhase.Repair);
         }
 
@@ -64,7 +78,7 @@ namespace DontForgetMe
             if (float.IsNaN(seconds) || float.IsInfinity(seconds) || seconds < 0)
                 throw new ArgumentOutOfRangeException(nameof(seconds));
             if (Phase != OpeningPhase.Repair) return;
-            RepairProgress = Math.Min(1f, RepairProgress + seconds / 14f);
+            RepairProgress = Math.Min(1f, RepairProgress + seconds / RepairSeconds);
             if (RepairProgress >= 1f) Phase = OpeningPhase.Regroup;
         }
 

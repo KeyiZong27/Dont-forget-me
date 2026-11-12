@@ -207,7 +207,7 @@ namespace DontForgetMe
 
         // One building front. Local x runs along the wall, y is up and +z points out into the street.
         // "shops" has one letter per ground-floor bay: S shutter, G glazed shop, O open workshop,
-        // D doorway, W plain wall.
+        // H open general store with its stock on show, D doorway, W plain wall.
         private static Transform Facade(string name, Vector3 origin, float yaw, float length, Material wall, int floors,
             string shops, string[] signs, int seed, float depth = 8f, float ground = 3.5f, bool cages = true,
             Material pier = null, bool awnings = true)
@@ -248,7 +248,7 @@ namespace DontForgetMe
                 {
                     float x0 = i * bay + 0.25f, x1 = (i + 1) * bay - 0.25f, cx = (x0 + x1) / 2, w = x1 - x0;
                     char kind = shops[i];
-                    if (hollow && kind != 'O' && kind != 'G')
+                    if (hollow && kind != 'O' && kind != 'G' && kind != 'H')
                         Kit.Box("BayFill", new Vector3(cx, open / 2, -(inner + Skin) / 2 - 0.02f), new Vector3(bay, open, inner - Skin), wall, t);
                     if (hollow)
                         Kit.Box("BayCeiling", new Vector3(cx, (open + ground) / 2, -(inner + Skin) / 2), new Vector3(bay, ground - open, inner - Skin), wall, t);
@@ -368,6 +368,16 @@ namespace DontForgetMe
                     Kit.Box("ShopBackTiles", new Vector3(cx, 0.75f, -inner + 0.03f), new Vector3(w + 0.26f, 1.3f, 0.05f), S("long_white_tiles"), t);
                     break;
                 }
+                case 'H':
+                {
+                    Material plaster = Art.Tint("surf/plastered_wall_04", new Color(0.70f, 0.69f, 0.63f));
+                    Kit.Box("ShopFloor", new Vector3(cx, 0.05f, -(inner + Skin) / 2), new Vector3(w + 0.5f, 0.1f, inner - Skin), S("long_white_tiles"), t);
+                    Kit.Box("ShopLeftWall", new Vector3(cx - w / 2 - 0.19f, open / 2, -(inner + Skin) / 2), new Vector3(0.12f, open, inner - Skin), plaster, t);
+                    Kit.Box("ShopRightWall", new Vector3(cx + w / 2 + 0.19f, open / 2, -(inner + Skin) / 2), new Vector3(0.12f, open, inner - Skin), plaster, t);
+                    Kit.Box("ShopBackWall", new Vector3(cx, open / 2, -inner + 0.03f), new Vector3(w + 0.26f, open, 0.05f), plaster, t);
+                    GeneralStore(t, cx, w, open, inner, random);
+                    break;
+                }
                 case 'D':
                 {
                     const float door = 1.1f, top = 2.15f;
@@ -397,6 +407,168 @@ namespace DontForgetMe
                     NoShadow(Kit.Tube("AwningArm", new Vector3(cx + side * (w / 2 + 0.1f), open + 0.1f, 0.02f),
                         new Vector3(cx + side * (w / 2 + 0.1f), open - 0.34f, 1.26f), 0.015f, darkMetal, t, 5));
             }
+        }
+
+        private static Transform shopShutter;
+        private static Vector3 keeperSpot, browseSpot, chatSpot, shopDoor;
+
+        // The hardware and household store beside the repair stall: stocked shelves, a counter,
+        // plastic basins and buckets stacked out on the pavement, and a shutter that can come down.
+        private static void GeneralStore(Transform t, float cx, float w, float open, float inner, System.Random random)
+        {
+            const float floor = 0.1f;
+            float back = -inner + 0.33f;
+            string[] goods = { "plastic_jerrycan", "vintage_electric_kettle", "modified_thermos", "metal_toolbox", "cardboard_box_01", "plastic_crate_01" };
+            Color[] plastics =
+            {
+                new Color(0.72f, 0.13f, 0.11f), new Color(0.12f, 0.32f, 0.66f), new Color(0.16f, 0.52f, 0.30f),
+                new Color(0.86f, 0.62f, 0.12f), new Color(0.80f, 0.78f, 0.72f)
+            };
+
+            // Shelving along the back and the left wall, every level carrying something.
+            Vector3[] shelfAt = { new Vector3(cx - 0.72f, floor, back), new Vector3(cx + 0.42f, floor, back), new Vector3(cx - w / 2 + 0.2f, floor, -1.9f) };
+            for (int s = 0; s < shelfAt.Length; s++)
+            {
+                float yaw = s == 2 ? 90 : 0;
+                Kit.Prop("steel_frame_shelves_01", shelfAt[s], yaw, t);
+                Quaternion turn = Quaternion.Euler(0, yaw, 0);
+                for (int level = 0; level < 4; level++)
+                {
+                    float y = floor + 0.03f + level * 0.5f;
+                    float x = -0.4f;
+                    while (x < 0.36f)
+                    {
+                        Vector3 at = shelfAt[s] + turn * new Vector3(x, 0, 0) + Vector3.up * (y - floor);
+                        int pick = random.Next(goods.Length + 3);
+                        float wide;
+                        if (pick < goods.Length)
+                        {
+                            float scale = goods[pick] == "plastic_crate_01" || goods[pick] == "cardboard_box_01" ? 0.8f : 0.9f;
+                            wide = Kit.PropSize(goods[pick]).x * scale;
+                            Kit.Prop(goods[pick], at + turn * new Vector3(wide / 2, 0, 0), yaw + random.Next(-12, 13), t, false, scale);
+                        }
+                        else if (pick == goods.Length)
+                        {
+                            wide = 0.17f;
+                            Flask(t, at + turn * new Vector3(wide / 2, 0, 0), plastics[random.Next(3)]);
+                        }
+                        else
+                        {
+                            wide = 0.19f;
+                            Tin(t, at + turn * new Vector3(wide / 2, 0, 0), plastics[random.Next(plastics.Length)], 0.075f + (float)random.NextDouble() * 0.02f);
+                        }
+                        x += wide + 0.03f + (float)random.NextDouble() * 0.06f;
+                    }
+                }
+            }
+
+            // Counter with the day's clutter; the keeper stands behind it.
+            Vector3 counter = new Vector3(cx + 0.72f, floor, -1.55f);
+            Kit.Prop("wooden_table_02", counter, new Vector3(1.05f, 1.08f, 0.85f), Quaternion.identity, t, false);
+            float top = floor + Kit.PropSize("wooden_table_02").y * 1.08f;
+            Kit.Prop("boombox", counter + new Vector3(-0.2f, top - floor, -0.08f), 12, t, false, 0.7f);
+            Flask(t, counter + new Vector3(0.38f, top - floor, 0.05f), plastics[0]);
+            Kit.Box("Ledger", counter + new Vector3(0.1f, top - floor + 0.012f, 0.12f), new Vector3(0.22f, 0.024f, 0.3f), Art.Plain(new Color(0.16f, 0.2f, 0.34f), 0.3f), t);
+            Kit.Prop("wall_clock", new Vector3(cx + 0.9f, 2.2f, -inner + 0.06f), 0, t, false, 1f, new Vector3(0, 0, -1));
+            Kit.Prop("garden_hose_wall_mounted_01", new Vector3(cx + w / 2 + 0.12f, 1.35f, -1.1f), -90, t, false, 1f, new Vector3(0, 0, -1));
+
+            // Heavy stock on the floor just inside the opening.
+            Kit.Prop("small_lpg_tank", new Vector3(cx + 1.05f, floor, -0.62f), 20, t);
+            Kit.Prop("small_lpg_tank", new Vector3(cx + 0.62f, floor, -0.55f), 140, t);
+            for (int i = 0; i < 3; i++)
+                Kit.Prop("cement_bag", new Vector3(cx - 0.35f, floor + i * Kit.PropSize("cement_bag").y, -0.85f), 88 + i * 7, t);
+            Kit.Prop("plastic_broom", new Vector3(cx - w / 2 + 0.05f, floor, -0.5f), 80, t);
+            Kit.Prop("plastic_broom", new Vector3(cx - w / 2 + 0.08f, floor, -0.85f), 96, t);
+
+            // Out on the pavement: the things a shop like this always stacks by its door.
+            for (int i = 0; i < 6; i++) Basin(t, new Vector3(cx - 0.95f, 0.1f + i * 0.024f, 0.55f), plastics[i % 3], 0.25f);
+            for (int i = 0; i < 5; i++) Basin(t, new Vector3(cx - 0.4f, 0.1f + i * 0.02f, 0.75f), plastics[(i + 1) % 3], 0.2f);
+            for (int i = 0; i < 4; i++) Bucket(t, new Vector3(cx - 0.9f, 0.1f + i * 0.075f, 1.1f), plastics[i % 2 == 0 ? 0 : 1]);
+            for (int i = 0; i < 3; i++) Bucket(t, new Vector3(cx - 0.45f, 0.1f + i * 0.075f, 1.25f), plastics[2]);
+            for (int i = 0; i < 4; i++)
+                Kit.Prop("plastic_monobloc_chair_01", new Vector3(cx + 1.15f, 0.1f + i * 0.11f, 0.5f), 168 + i, t, i == 0);
+            float crate = Kit.PropSize("plastic_crate_01").y;
+            Kit.Prop("plastic_crate_01", new Vector3(cx + 0.45f, 0.1f, 0.42f), 4, t);
+            Kit.Prop("plastic_crate_01", new Vector3(cx + 0.45f, 0.1f + crate, 0.42f), -6, t);
+            for (int i = 0; i < 3; i++) Flask(t, new Vector3(cx + 0.36f + i * 0.09f, 0.1f + crate * 2, 0.36f + (i % 2) * 0.1f), plastics[i]);
+            Tag(t, "盆 8元", new Vector3(cx - 0.95f, 0.34f, 0.84f));
+            Tag(t, "桶 12元", new Vector3(cx - 0.6f, 0.52f, 1.45f));
+
+            // Basins hung on the pier, the way they are shown off.
+            for (int i = 0; i < 2; i++)
+            {
+                GameObject hung = Basin(t, new Vector3(cx - w / 2 - 0.12f + i * 0.04f, 1.75f - i * 0.5f, 0.02f), plastics[i == 0 ? 1 : 0], 0.2f);
+                hung.transform.localRotation = Quaternion.Euler(82, 0, 0);
+            }
+
+            Color tone = new Color(1f, 0.86f, 0.66f);
+            NoShadow(Kit.Box("ShopTube", new Vector3(cx, open - 0.06f, -1.7f), new Vector3(w * 0.5f, 0.03f, 0.05f), Art.Glow(tone, 3.5f), t));
+            Kit.Lamp("ShopLight", new Vector3(cx, open - 0.5f, -1.5f), tone, 2.2f, 5.5f, t, true);
+
+            // The shutter hangs from its top edge, so scaling the holder rolls it down.
+            shopShutter = Group("ShopShutter", new Vector3(cx, open, -0.27f), 0, t);
+            Kit.PropFit("rollershutter_door#0", Vector3.zero, new Vector3(w, open, 0.24f), Quaternion.identity, shopShutter, new Vector3(0, 1, -1));
+            shopShutter.localScale = new Vector3(1, 0.1f, 1);
+
+            keeperSpot = t.TransformPoint(new Vector3(cx + 0.72f, floor, -2.25f));
+            shopDoor = t.TransformPoint(new Vector3(cx, 0, 0));
+            browseSpot = t.TransformPoint(new Vector3(cx - 0.7f, 0.1f, 1.75f));
+            chatSpot = t.TransformPoint(new Vector3(cx + 0.55f, 0.1f, 1.1f));
+        }
+
+        private static GameObject Basin(Transform t, Vector3 at, Color colour, float radius)
+        {
+            float r = radius;
+            return Kit.Lathe("Basin", at, new[]
+            {
+                new Vector2(0, 0), new Vector2(r * 0.64f, 0), new Vector2(r * 0.97f, r * 0.44f), new Vector2(r, r * 0.44f),
+                new Vector2(r, r * 0.47f), new Vector2(r * 0.93f, r * 0.47f), new Vector2(r * 0.62f, 0.008f), new Vector2(0, 0.008f)
+            }, Art.Plain(colour, 0.62f), t, 22);
+        }
+
+        private static void Bucket(Transform t, Vector3 at, Color colour)
+        {
+            GameObject bucket = Kit.Lathe("Bucket", at, new[]
+            {
+                new Vector2(0, 0), new Vector2(0.105f, 0), new Vector2(0.14f, 0.26f), new Vector2(0.15f, 0.26f), new Vector2(0.15f, 0.275f),
+                new Vector2(0.133f, 0.275f), new Vector2(0.1f, 0.012f), new Vector2(0, 0.012f)
+            }, Art.Plain(colour, 0.6f), t, 20);
+            Vector3[] handle = new Vector3[9];
+            for (int i = 0; i < handle.Length; i++)
+            {
+                float a = Mathf.Lerp(0f, Mathf.PI, i / 8f);
+                handle[i] = new Vector3(Mathf.Cos(a) * 0.15f, 0.26f - Mathf.Sin(a) * 0.05f, Mathf.Sin(a) * 0.06f);
+            }
+            NoShadow(Kit.Path("Handle", handle, 0.004f, darkMetal, bucket.transform, 5));
+        }
+
+        private static void Flask(Transform t, Vector3 at, Color colour)
+        {
+            GameObject flask = Kit.Lathe("Flask", at, new[]
+            {
+                new Vector2(0, 0), new Vector2(0.068f, 0), new Vector2(0.072f, 0.02f), new Vector2(0.072f, 0.25f), new Vector2(0.046f, 0.31f),
+                new Vector2(0.036f, 0.35f), new Vector2(0.042f, 0.37f), new Vector2(0, 0.375f)
+            }, Art.Plain(colour, 0.55f), t, 16);
+            NoShadow(Kit.Lathe("Band", new Vector3(0, 0.19f, 0), new[] { new Vector2(0.0735f, 0), new Vector2(0.0735f, 0.04f) },
+                Art.Metal(new Color(0.75f, 0.74f, 0.7f), 0.6f), flask.transform, 16));
+        }
+
+        private static void Tin(Transform t, Vector3 at, Color colour, float radius)
+        {
+            float h = radius * 2.3f;
+            GameObject tin = Kit.Lathe("Tin", at, new[]
+            {
+                new Vector2(0, 0), new Vector2(radius, 0), new Vector2(radius, h), new Vector2(radius * 0.92f, h + 0.004f), new Vector2(0, h + 0.004f)
+            }, Art.Metal(new Color(0.7f, 0.7f, 0.68f), 0.55f), t, 14);
+            NoShadow(Kit.Lathe("Label", new Vector3(0, h * 0.15f, 0), new[] { new Vector2(radius + 0.001f, 0), new Vector2(radius + 0.001f, h * 0.7f) },
+                Art.Plain(colour, 0.35f), tin.transform, 14));
+        }
+
+        // A hand-written price card standing among the goods, facing the street.
+        private static void Tag(Transform t, string text, Vector3 at)
+        {
+            NoShadow(Kit.Box("PriceCard", at, new Vector3(0.3f, 0.13f, 0.006f), Art.Plain(new Color(0.9f, 0.86f, 0.7f), 0.2f), t));
+            Kit.Sign(text, at + new Vector3(0, 0, 0.005f), Vector3.forward, 0.075f, new Color(0.62f, 0.1f, 0.08f), 1f, t);
         }
 
         private static void Window(Transform t, float cx, float y, float ww, float wh, Material frame, System.Random random, bool cages)
@@ -546,7 +718,7 @@ namespace DontForgetMe
 
             // West side, north to south. The middle building is the repair shop.
             Facade("West3", new Vector3(-10.5f, 0, 28), 90, 9, cream, 3, "GSD", new[] { "老街面馆", "烟酒茶", null }, 31, 9f, 3.5f, true, tiles);
-            Facade("WestRepair", new Vector3(-10.5f, 0, 19), 90, 13, yellow, 2, "GOSD", new[] { "家电维修", "修理铺", "五金杂货", null }, 14, 9f, 3.5f, true);
+            Facade("WestRepair", new Vector3(-10.5f, 0, 19), 90, 13, yellow, 2, "GOHD", new[] { "家电维修", "修理铺", "五金杂货", null }, 14, 9f, 3.5f, true);
             Facade("West1", new Vector3(-10.5f, 0, 6), 90, 15, grey, 4, "SGSDS", new[] { "便民超市", "惠民药房", "理发", null, "粮油" }, 52, 9f, 3.5f, true, tiles);
 
             // East side, south to north: lower, so the late sun still reaches the west pavement.
@@ -681,7 +853,7 @@ namespace DontForgetMe
             // Pavement clutter, kept clear of the routes people take through the street.
             float[,] items =
             {
-                { -9.9f, 26.3f, 20 }, { -9.6f, 9.6f, 0 }, { -9.9f, 4.4f, 180 }, { 10.0f, 2.5f, -90 }, { 9.9f, 18.4f, -90 }
+                { -9.9f, 26.3f, 20 }, { -9.95f, 8.9f, 0 }, { -9.9f, 4.4f, 180 }, { 10.0f, 2.5f, -90 }, { 9.9f, 18.4f, -90 }
             };
             string[] ids = { "metal_trash_can", "utility_box_01", "utility_box_01", "utility_box_01", "metal_trash_can" };
             for (int i = 0; i < ids.Length; i++)
@@ -703,7 +875,7 @@ namespace DontForgetMe
             Kit.Prop("korean_fire_extinguisher_01", new Vector3(-10.25f, 0.1f, 1.6f), 90, root);
             Kit.Prop("planter_box_01", new Vector3(-10.0f, 0.1f, -1.6f), 90, root, true);
             Kit.Prop("planter_box_01", new Vector3(10.0f, 0.1f, 6.2f), 90, root, true);
-            Kit.Prop("potted_plant_04", new Vector3(-10.1f, 0.1f, 11.9f), 0, root, false, 3.2f);
+            Kit.Prop("potted_plant_04", new Vector3(-10.1f, 0.1f, 13.2f), 0, root, false, 3.2f);
             Kit.Prop("potted_plant_04", new Vector3(10.05f, 0.1f, 12.4f), 120, root, false, 2.8f);
             Kit.Prop("plastic_broom", new Vector3(-10.3f, 0.1f, 8.2f), 90, root);
             Kit.Prop("hand_truck", new Vector3(9.9f, 0.1f, 22.4f), -80, root);
@@ -747,12 +919,16 @@ namespace DontForgetMe
                 NoShadow(Kit.Tube("LampArm", new Vector3(side * 2.98f, 3.25f, lampZ[i]), at + Vector3.up * 0.2f, 0.018f, darkMetal, root, 5));
                 Kit.Lathe("LampShade", at + Vector3.up * 0.04f, new[] { new Vector2(0.05f, 0.12f), new Vector2(0.16f, 0f), new Vector2(0.17f, 0f), new Vector2(0.06f, 0.13f), new Vector2(0.03f, 0.16f) },
                     greenPaint, root, 16);
-                NoShadow(Kit.Lathe("LampBulb", at - Vector3.up * 0.02f, new[] { new Vector2(0, 0), new Vector2(0.04f, 0.03f), new Vector2(0.03f, 0.09f), new Vector2(0, 0.1f) },
-                    Art.Glow(new Color(1f, 0.72f, 0.4f), 7f), root, 10));
-                Kit.Lamp("AlleyLamp", at - Vector3.up * 0.15f, new Color(1f, 0.70f, 0.40f), i == 2 ? 5.5f : 4f, 7.5f, root, i == 0 || i == 2);
+                GameObject bulb = Kit.Lathe("LampBulb", at - Vector3.up * 0.02f, new[] { new Vector2(0, 0), new Vector2(0.04f, 0.03f), new Vector2(0.03f, 0.09f), new Vector2(0, 0.1f) },
+                    Art.Glow(new Color(1f, 0.72f, 0.4f), 7f), root, 10);
+                NoShadow(bulb);
+                Light lamp = Kit.Lamp("AlleyLamp", at - Vector3.up * 0.15f, new Color(1f, 0.70f, 0.40f), i == 2 ? 5.5f : 4f, 7.5f, root, i == 0 || i == 2);
+                game.AlleyLamps.Add(lamp);
+                game.AlleyBulbs.Add(bulb.GetComponent<Renderer>());
             }
 
-            // Things left against the walls. None of these block the walking line down the middle.
+            // Things left against the walls. None of these block the walking line down the middle,
+            // and the last stretch before the gate is kept free for whatever gets hauled off the pile.
             Kit.Prop("trashbag", new Vector3(-2.55f, 0, 30.2f), 20, root);
             Kit.Prop("trashbag", new Vector3(-2.6f, 0, 30.9f), 140, root, false, 0.9f);
             Kit.Prop("trashbag", new Vector3(2.35f, 0, 33.6f), 70, root, false, 1.1f);
@@ -762,56 +938,288 @@ namespace DontForgetMe
             Kit.Prop("plastic_crate_01", new Vector3(-2.65f, Kit.PropSize("plastic_crate_01").y, 36.8f), 12, root);
             Kit.Prop("plastic_broom", new Vector3(-2.85f, 0, 38.2f), 90, root);
             Kit.Prop("wooden_ladder_02", new Vector3(2.62f, 0, 38.3f), -90, root);
-            Kit.Prop("plastic_jerrycan", new Vector3(2.6f, 0, 40.4f), 30, root);
-            Kit.Prop("cement_bag", new Vector3(-2.55f, 0, 41.2f), 95, root);
-            Kit.Prop("cement_bag", new Vector3(-2.55f, Kit.PropSize("cement_bag").y, 41.3f), 80, root);
-            Kit.Prop("old_tyre", new Vector3(2.75f, 0.3f, 42.6f), 0, root, false, 1f, null, Quaternion.Euler(75, 90, 0));
+            Kit.Prop("plastic_jerrycan", new Vector3(2.6f, 0, 39.6f), 30, root);
+            Kit.Prop("korean_fire_extinguisher_01", new Vector3(-2.8f, 0, 39.3f), 90, root);
             Kit.Prop("hand_truck", new Vector3(-2.6f, 0, 49.6f), 95, root);
             Kit.Prop("garden_hose_wall_mounted_01", new Vector3(2.98f, 1.1f, 50.3f), -90, root, false, 1f, new Vector3(0, 0, -1));
-            Kit.Prop("korean_fire_extinguisher_01", new Vector3(2.8f, 0, 46.9f), -90, root);
             Kit.Prop("security_light", new Vector3(1.9f, 3.0f, 47.82f), 180, root, false, 1f, new Vector3(0, 0, -1));
             Kit.Spot("GateLight", new Vector3(1.6f, 2.95f, 47.4f), new Vector3(-0.45f, -1f, -0.5f), new Color(0.82f, 0.9f, 1f), 9f, 9f, 95f, root, true);
 
-            // The jammed gate: sliding leaf, its floor track, pillars and a beam overhead.
+            BuildGate(game);
+            BuildPile(game);
+        }
+
+        // The yard gate at the end of the alley: a heavy sliding leaf of sheet steel below and
+        // bars above, running on a floor rail that has been knocked out of true, and chained shut.
+        private static void BuildGate(DemoGame game)
+        {
             Material pillar = S("concrete_wall_008");
-            Kit.Box("GateLeft", new Vector3(-2.2f, 1.5f, 48), new Vector3(1.6f, 3, 0.35f), pillar, root, true);
-            Kit.Box("GateRight", new Vector3(2.2f, 1.5f, 48), new Vector3(1.6f, 3, 0.35f), pillar, root, true);
+            Material steel = Art.Tint("surf/rusty_metal_02", new Color(0.55f, 0.5f, 0.46f));
+            Material sheet = S("rusty_painted_metal");
+            Material rust = Art.Tint("surf/rusty_metal_02", new Color(0.42f, 0.33f, 0.27f));
+            foreach (float side in new[] { -1f, 1f })
+            {
+                Kit.Box(side < 0 ? "GateLeft" : "GateRight", new Vector3(side * 2.2f, 1.5f, 48), new Vector3(1.6f, 3, 0.35f), pillar, root, true);
+                Kit.Box("PillarFoot", new Vector3(side * 2.2f, 0.14f, 47.97f), new Vector3(1.66f, 0.28f, 0.44f), curb, root);
+                Kit.Box("PillarEdge", new Vector3(side * 1.43f, 1.64f, 47.84f), new Vector3(0.07f, 2.72f, 0.07f), steel, root);
+                NoShadow(Kit.Box("GuideBracket", new Vector3(side * 1.6f, 2.84f, 48.24f), new Vector3(0.06f, 0.06f, 0.2f), darkMetal, root));
+            }
             Kit.Box("GateBeam", new Vector3(0, 3.3f, 48), new Vector3(6f, 0.6f, 0.45f), pillar, root);
             Kit.Box("GateCanopy", new Vector3(0, 3.66f, 48.1f), new Vector3(6f, 0.05f, 1.5f), S("corrugated_iron_02"), root);
-            Kit.Box("GateTrack", new Vector3(-1.4f, 0.012f, 48.3f), new Vector3(5.8f, 0.024f, 0.1f), Art.Metal(new Color(0.3f, 0.27f, 0.25f), 0.35f), root);
             NoShadow(Kit.Box("GateTopGuide", new Vector3(-1.4f, 2.78f, 48.3f), new Vector3(5.8f, 0.06f, 0.12f), darkMetal, root));
+            NoShadow(Kit.Box("NoticeBoard", new Vector3(2.2f, 1.95f, 47.815f), new Vector3(1.24f, 0.34f, 0.02f), Art.Plain(new Color(0.82f, 0.8f, 0.72f), 0.3f), root));
+            Kit.Sign("严禁堆放杂物", new Vector3(2.2f, 1.95f, 47.8f), Vector3.back, 0.17f, new Color(0.6f, 0.1f, 0.08f, 0.9f), 1f, root);
+            Kit.Sign("后巷 17", new Vector3(-2.2f, 2.3f, 47.82f), Vector3.back, 0.2f, new Color(0.2f, 0.22f, 0.25f, 0.7f), 1f, root);
+
+            // Floor rail: a base plate with the running edge on it, kinked where something heavy went over it.
+            Kit.Box("GateTrackPlate", new Vector3(-1.4f, 0.006f, 48.3f), new Vector3(5.8f, 0.012f, 0.18f), Art.Metal(new Color(0.3f, 0.27f, 0.25f), 0.35f), root);
+            Kit.Box("GateTrack", new Vector3(-2.02f, 0.03f, 48.3f), new Vector3(4.56f, 0.036f, 0.03f), steel, root);
+            Kit.Box("GateTrackEast", new Vector3(1.33f, 0.03f, 48.3f), new Vector3(0.34f, 0.036f, 0.03f), steel, root);
+            GameObject kink = Kit.Box("GateTrackKink", new Vector3(0.71f, 0.062f, 48.31f), new Vector3(0.94f, 0.036f, 0.03f), rust, root);
+            kink.transform.localRotation = Quaternion.Euler(0, 2.5f, 4.2f);
+            Kit.Lathe("Rubble", new Vector3(0.78f, 0, 48.2f), new[] { new Vector2(0, 0), new Vector2(0.07f, 0), new Vector2(0.06f, 0.045f), new Vector2(0.02f, 0.06f), new Vector2(0, 0.06f) }, curb, root, 7);
+            Kit.Lathe("Rubble", new Vector3(0.52f, 0, 48.38f), new[] { new Vector2(0, 0), new Vector2(0.05f, 0), new Vector2(0.035f, 0.04f), new Vector2(0, 0.045f) }, curb, root, 6);
+
+            // The post the leaf closes against, with the staple the chain runs through.
+            Kit.Box("GateKeep", new Vector3(1.45f, 1.35f, 48.3f), new Vector3(0.05f, 2.7f, 0.16f), steel, root);
+            NoShadow(Kit.Box("GateStaple", new Vector3(1.4f, 1.13f, 48.2f), new Vector3(0.05f, 0.09f, 0.04f), darkMetal, root));
 
             GameObject gate = new GameObject("JamGate");
             gate.transform.SetParent(root, false);
             gate.transform.position = DemoGame.GateClosed;
             gate.AddComponent<BoxCollider>().size = new Vector3(2.8f, 2.7f, 0.18f);
-            Material leaf = S("rusty_painted_metal");
-            Kit.Box("Leaf", Vector3.zero, new Vector3(2.72f, 2.6f, 0.03f), leaf, gate.transform);
-            Material rail = Art.Tint("surf/rusty_metal_02", new Color(0.55f, 0.5f, 0.46f));
-            foreach (float y in new[] { -1.28f, -0.45f, 0.45f, 1.28f })
-                Kit.Box("Rail", new Vector3(0, y, 0), new Vector3(2.8f, 0.07f, 0.09f), rail, gate.transform);
-            foreach (float x in new[] { -1.37f, 0f, 1.37f })
-                Kit.Box("Stile", new Vector3(x, 0, 0), new Vector3(0.07f, 2.66f, 0.09f), rail, gate.transform);
-            Kit.Box("Bolt", new Vector3(1.1f, -0.1f, -0.07f), new Vector3(0.3f, 0.05f, 0.05f), darkMetal, gate.transform);
-            foreach (float x in new[] { -1.1f, 1.1f })
-                Kit.Lathe("Roller", new Vector3(x, -1.33f, 0), new[] { new Vector2(0, -0.03f), new Vector2(0.05f, -0.03f), new Vector2(0.05f, 0.03f), new Vector2(0, 0.03f) },
-                    darkMetal, gate.transform, 12).transform.localRotation = Quaternion.Euler(90, 0, 0);
+            Transform leaf = gate.transform;
+            foreach (float x in new[] { -1.36f, 1.36f })
+                Kit.Box("Stile", new Vector3(x, 0, 0), new Vector3(0.08f, 2.7f, 0.08f), steel, leaf);
+            foreach (float y in new[] { -1.31f, 1.31f })
+                Kit.Box("Rail", new Vector3(0, y, 0), new Vector3(2.8f, 0.08f, 0.08f), steel, leaf);
+            Kit.Box("MidRail", new Vector3(0, -0.25f, 0), new Vector3(2.64f, 0.08f, 0.07f), steel, leaf);
+            NoShadow(Kit.Box("BarTie", new Vector3(0, 0.62f, 0), new Vector3(2.64f, 0.04f, 0.03f), steel, leaf));
+            Kit.Box("Panel", new Vector3(0, -0.78f, 0), new Vector3(2.64f, 0.98f, 0.022f), sheet, leaf);
+            foreach (float x in new[] { -0.88f, 0f, 0.88f })
+                NoShadow(Kit.Box("PanelRib", new Vector3(x, -0.78f, 0), new Vector3(0.05f, 0.98f, 0.05f), steel, leaf));
+            foreach (float side in new[] { -1f, 1f })
+                NoShadow(Kit.Tube("PanelBrace", new Vector3(side * 1.3f, -1.25f, -0.03f), new Vector3(side * 0.05f, -0.3f, -0.03f), 0.014f, steel, leaf, 6));
+            for (int i = 0; i < 22; i++)
+                Kit.Box("Bar", new Vector3(-1.24f + i * 0.1181f, 0.51f, 0), new Vector3(0.022f, 1.52f, 0.022f), steel, leaf);
+            Kit.Sign("消防通道  严禁堆物", new Vector3(-0.2f, -0.72f, -0.02f), Vector3.back, 0.17f, new Color(0.86f, 0.84f, 0.76f, 0.7f), 1f, leaf);
+
+            // Wheels in their housings, the lock plate with its bolt, and a pull on the yard side.
+            foreach (float x in new[] { -1.0f, 1.0f })
+            {
+                Kit.Lathe("Roller", new Vector3(x, -1.3f, 0), new[] { new Vector2(0, -0.03f), new Vector2(0.065f, -0.03f), new Vector2(0.05f, 0f), new Vector2(0.065f, 0.03f), new Vector2(0, 0.03f) },
+                    darkMetal, leaf, 14).transform.localRotation = Quaternion.Euler(90, 0, 0);
+                NoShadow(Kit.Box("RollerHousing", new Vector3(x, -1.26f, 0), new Vector3(0.2f, 0.1f, 0.11f), steel, leaf));
+            }
+            Kit.Box("LockPlate", new Vector3(1.17f, -0.25f, -0.045f), new Vector3(0.26f, 0.3f, 0.02f), rust, leaf);
+            NoShadow(Kit.Tube("Bolt", new Vector3(0.98f, -0.2f, -0.07f), new Vector3(1.39f, -0.2f, -0.07f), 0.013f, darkMetal, leaf, 7));
+            NoShadow(Kit.Box("BoltKnob", new Vector3(1.08f, -0.2f, -0.095f), new Vector3(0.03f, 0.03f, 0.05f), darkMetal, leaf));
+            NoShadow(Kit.Tube("Pull", new Vector3(1.22f, -0.15f, 0.07f), new Vector3(1.22f, 0.2f, 0.07f), 0.014f, darkMetal, leaf, 7));
             game.Gate = gate;
 
-            for (int i = 0; i < 2; i++)
+            // Chain looped through the staple and round the stile, padlocked, with the slack hanging.
+            GameObject chain = new GameObject("GateChain");
+            chain.transform.SetParent(root, false);
+            Material link = Art.Metal(new Color(0.34f, 0.3f, 0.27f), 0.4f);
+            Chain(chain.transform, link, new Vector3(1.42f, 1.14f, 48.19f), new Vector3(1.36f, 1.1f, 48.235f), new Vector3(1.27f, 1.12f, 48.24f),
+                new Vector3(1.2f, 1.17f, 48.245f));
+            Chain(chain.transform, link, new Vector3(1.36f, 1.1f, 48.235f), new Vector3(1.34f, 0.95f, 48.23f), new Vector3(1.345f, 0.72f, 48.235f));
+            Material brass = Art.Metal(new Color(0.56f, 0.44f, 0.2f), 0.5f);
+            NoShadow(Kit.Box("Padlock", new Vector3(1.3f, 1.0f, 48.215f), new Vector3(0.075f, 0.085f, 0.03f), brass, chain.transform));
+            Vector3[] shackle = new Vector3[7];
+            for (int i = 0; i < shackle.Length; i++)
             {
-                int index = i;
-                GameObject debris = new GameObject("Debris" + i);
-                debris.transform.SetParent(root, false);
-                debris.transform.position = new Vector3(i == 0 ? -0.8f : 0.8f, 0.5f, 44);
-                debris.AddComponent<BoxCollider>().size = new Vector3(1.2f, 1f, 1.0f);
-                Kit.Prop("wooden_crate_02", new Vector3(0, -0.5f, 0), i == 0 ? 8 : -12, debris.transform);
-                Kit.Prop("wooden_crate_01", new Vector3(i == 0 ? -0.1f : 0.12f, -0.5f + Kit.PropSize("wooden_crate_02").y, 0.02f), i == 0 ? -25 : 31, debris.transform);
-                if (i == 0) Kit.Prop("cardboard_box_01", new Vector3(0.22f, -0.5f + Kit.PropSize("wooden_crate_02").y + Kit.PropSize("wooden_crate_01").y, 0), 50, debris.transform, false, 0.8f);
-                else Kit.Prop("plastic_jerrycan", new Vector3(-0.2f, -0.5f + Kit.PropSize("wooden_crate_02").y + Kit.PropSize("wooden_crate_01").y, 0.05f), 15, debris.transform);
-                game.AddInteraction(debris, "搬开挡路的杂物", () => game.State.Phase == OpeningPhase.Debris,
-                    () => game.MoveDebris(debris, index));
+                float a = Mathf.Lerp(0f, Mathf.PI, i / 6f);
+                shackle[i] = new Vector3(1.3f + Mathf.Cos(a) * 0.024f, 1.045f + Mathf.Sin(a) * 0.04f, 48.215f);
             }
+            NoShadow(Kit.Path("Shackle", shackle, 0.006f, darkMetal, chain.transform, 5));
+            game.GateChain = chain;
+        }
+
+        private static void Chain(Transform parent, Material material, params Vector3[] line)
+        {
+            const float pitch = 0.042f;
+            int index = 0;
+            for (int s = 0; s + 1 < line.Length; s++)
+            {
+                Vector3 along = line[s + 1] - line[s];
+                int count = Mathf.Max(1, Mathf.RoundToInt(along.magnitude / pitch));
+                Vector3 axis = along.normalized;
+                Vector3 across = Vector3.Cross(axis, Mathf.Abs(axis.y) > 0.9f ? Vector3.forward : Vector3.up).normalized;
+                Vector3 other = Vector3.Cross(axis, across);
+                for (int i = 0; i < count; i++, index++)
+                {
+                    Vector3 centre = Vector3.Lerp(line[s], line[s + 1], (i + 0.5f) / count);
+                    Vector3 wide = index % 2 == 0 ? across : other;
+                    Vector3[] loop = new Vector3[9];
+                    for (int p = 0; p < loop.Length; p++)
+                    {
+                        float a = p * Mathf.PI * 2f / (loop.Length - 1);
+                        loop[p] = centre + axis * (Mathf.Cos(a) * pitch * 0.72f) + wide * (Mathf.Sin(a) * 0.014f);
+                    }
+                    NoShadow(Kit.Path("Link", loop, 0.0045f, material, parent, 4));
+                }
+            }
+        }
+
+        private static Piece AddPiece(DemoGame game, string id, string prompt, bool heavy, Vector3 at, float yaw, Vector3 box,
+            Vector3 rest, float grip, float hold, float lift)
+        {
+            GameObject item = new GameObject(id);
+            item.transform.SetParent(root, false);
+            item.transform.SetPositionAndRotation(at, Quaternion.Euler(0, yaw, 0));
+            BoxCollider collider = item.AddComponent<BoxCollider>();
+            collider.center = new Vector3(0, box.y / 2f, 0);
+            collider.size = box;
+            Piece piece = new Piece { Id = id, Root = item, Heavy = heavy, Rest = rest, Grip = new Vector2(grip, hold), Lift = lift };
+            game.Pile.Add(piece);
+            game.AddInteraction(item, prompt, () => game.CanMove(piece), () => game.MovePiece(piece)).Range = 2.3f;
+            return piece;
+        }
+
+        private static GameObject Lying(string id, Vector3 centre, Vector3 euler, Transform parent, float scale = 1f)
+        {
+            return Kit.Prop(id, centre, Vector3.one * scale, Quaternion.Euler(euler), parent, false, Vector3.zero);
+        }
+
+        // Years of other people's rubbish heaped against a gate nobody used. The two side heaps
+        // are fixed; the middle is separate pieces that have to be carried off one at a time
+        // before anyone can get at the chain and the rail.
+        private static void BuildPile(DemoGame game)
+        {
+            float tyre = Kit.PropSize("old_tyre").z, crateA = Kit.PropSize("wooden_crate_01").y, crateB = Kit.PropSize("wooden_crate_02").y;
+            float box = Kit.PropSize("cardboard_box_01").y, bag = Kit.PropSize("cement_bag").y, plastic = Kit.PropSize("plastic_crate_01").y;
+
+            // Three rows across the lane and the hand truck jammed on the rail behind them. In each
+            // row the neighbours and old Zhou take what one person can lift; the heavy pieces wait for the player.
+            Piece tyres = AddPiece(game, "pile-tyres", "搬开旧轮胎", false, new Vector3(-1.05f, 0, 44.7f), 0, new Vector3(0.62f, tyre * 3, 0.62f),
+                new Vector3(-2.5f, 0, 44.1f), 0.3f, 0.2f, 0.45f);
+            for (int i = 0; i < 3; i++)
+                Lying("old_tyre", new Vector3(i == 1 ? 0.03f : -0.01f, tyre * (i + 0.5f), i == 2 ? 0.03f : 0), new Vector3(90, i * 50, 0), tyres.Root.transform);
+            Piece boxes = AddPiece(game, "pile-boxes", "搬开纸箱", false, new Vector3(0f, 0, 44.55f), 8, new Vector3(0.5f, box * 2, 0.55f),
+                new Vector3(2.45f, 0, 41.6f), 0.24f, 0.3f, 0.4f);
+            Kit.Prop("cardboard_box_01", Vector3.zero, 0, boxes.Root.transform);
+            Kit.Prop("cardboard_box_01", new Vector3(0.02f, box, 0.01f), -18, boxes.Root.transform, false, 0.92f);
+            Piece bags = AddPiece(game, "pile-bags", "搬开垃圾袋", false, new Vector3(1.05f, 0, 44.75f), -5, new Vector3(0.95f, 0.55f, 0.5f),
+                new Vector3(2.5f, 0, 43.3f), 0.26f, 0.48f, 0.2f);
+            Kit.Prop("trashbag", new Vector3(-0.22f, 0, 0), 30, bags.Root.transform);
+            Kit.Prop("trashbag", new Vector3(0.24f, 0, 0.04f), 200, bags.Root.transform, false, 0.9f);
+
+            Piece crates = AddPiece(game, "pile-crates", "搬开一摞木箱", true, new Vector3(-1.0f, 0, 45.5f), 4, new Vector3(0.86f, crateA * 3 + box * 0.8f, 0.45f),
+                new Vector3(-2.4f, 0, 43.2f), 0.42f, 0.28f, 0.5f);
+            for (int i = 0; i < 3; i++)
+                Kit.Prop("wooden_crate_01", new Vector3(i == 1 ? 0.02f : 0, crateA * i, 0), i * 6 - 5, crates.Root.transform);
+            Kit.Prop("cardboard_box_01", new Vector3(-0.12f, crateA * 3, 0), 40, crates.Root.transform, false, 0.8f);
+            Piece telly = AddPiece(game, "pile-telly", "搬开旧电视", false, new Vector3(0f, 0, 45.5f), -3, new Vector3(0.62f, box + 0.46f, 0.52f),
+                new Vector3(2.45f, 0, 40.7f), 0.3f, 0.3f, 0.45f);
+            Kit.Prop("cardboard_box_01", Vector3.zero, 90, telly.Root.transform, false, 1.15f);
+            Kit.Prop("Television_01", new Vector3(0, box * 1.15f, 0), 172, telly.Root.transform);
+            Piece chest = AddPiece(game, "pile-chest", "搬开铁皮柜", true, new Vector3(1.0f, 0, 45.55f), -6, new Vector3(0.86f, crateA + 1.0f, 0.45f),
+                new Vector3(2.4f, 0, 42.5f), 0.42f, 0.25f, 0.42f);
+            Kit.Prop("wooden_crate_01", Vector3.zero, 0, chest.Root.transform);
+            Kit.Prop("metal_tool_chest", new Vector3(0, crateA, 0), 4, chest.Root.transform);
+            Kit.Prop("metal_toolbox", new Vector3(-0.08f, crateA + Kit.PropSize("metal_tool_chest").y, 0), 14, chest.Root.transform);
+
+            Piece baskets = AddPiece(game, "pile-baskets", "搬开塑料筐", false, new Vector3(-1.0f, 0, 46.4f), 6, new Vector3(0.66f, plastic * 3, 0.45f),
+                new Vector3(-2.5f, 0, 42.3f), 0.3f, 0.3f, 0.4f);
+            for (int i = 0; i < 6; i++)
+                Kit.Prop("plastic_crate_01", new Vector3(i % 2 == 0 ? -0.16f : 0.16f, plastic * (i / 2), (i / 2) * 0.01f), (i * 37) % 9 - 4, baskets.Root.transform);
+            Piece cement = AddPiece(game, "pile-cement", "搬开水泥袋", true, new Vector3(0f, 0, 46.4f), 0, new Vector3(0.74f, bag * 4 + plastic, 0.5f),
+                new Vector3(-2.4f, 0, 41.4f), 0.34f, 0.1f, 0.55f);
+            for (int i = 0; i < 4; i++)
+                Kit.Prop("cement_bag", new Vector3(i % 2 == 1 ? 0.03f : 0, bag * i, 0), 90 + (i - 1) * 6, cement.Root.transform);
+            Kit.Prop("plastic_jerrycan", new Vector3(0.1f, bag * 4, 0), 80, cement.Root.transform);
+            Piece chairs = AddPiece(game, "pile-chairs", "搬开破椅子", false, new Vector3(1.0f, 0, 46.4f), 0, new Vector3(0.6f, 1.0f, 0.6f),
+                new Vector3(-2.5f, 0, 40.5f), 0.26f, 0.5f, 0.3f);
+            Kit.Prop("painted_wooden_chair_01", Vector3.zero, 15, chairs.Root.transform);
+            Lying("wooden_stool_01", new Vector3(0.02f, 0.7f, 0.02f), new Vector3(180, 40, 0), chairs.Root.transform);
+
+            Piece truck = AddPiece(game, "pile-truck", "拉开卡在轨道上的手推车", true, new Vector3(0.55f, 0, 47.3f), 0, new Vector3(0.62f, 1.4f, 0.8f),
+                new Vector3(2.4f, 0, 44.1f), 0.2f, 1.25f, 0f);
+            truck.Wheeled = true;
+            truck.Reach = 0.5f;
+            truck.Root.GetComponent<BoxCollider>().center = new Vector3(0, 0.7f, 0.2f);
+            Kit.Prop("hand_truck", Vector3.zero, 0, truck.Root.transform);
+            Kit.Prop("small_lpg_tank", new Vector3(0, 0.04f, 0.3f), 30, truck.Root.transform);
+            crates.After = new[] { tyres, boxes };
+            telly.After = new[] { boxes };
+            chest.After = new[] { boxes, bags };
+            baskets.After = new[] { crates };
+            cement.After = new[] { telly };
+            chairs.After = new[] { chest };
+            truck.After = new[] { cement, chairs };
+
+            // West heap, up against the wall and the pillar.
+            Blocker("HeapWest", new Vector3(-2.25f, 0.8f, 46.55f), new Vector3(1.5f, 1.6f, 2.7f));
+            Transform west = Group("HeapWest", Vector3.zero, 0);
+            Kit.Prop("steel_frame_shelves_01", new Vector3(-2.72f, 0, 46.65f), 90, west);
+            Kit.Prop("vintage_electric_kettle", new Vector3(-2.72f, 0.53f, 46.4f), 100, west);
+            Kit.Prop("metal_toolbox", new Vector3(-2.72f, 0.53f, 46.9f), 80, west);
+            Kit.Prop("plastic_jerrycan", new Vector3(-2.72f, 1.03f, 46.9f), 60, west);
+            Kit.Prop("cardboard_box_01", new Vector3(-2.72f, 1.53f, 46.6f), 85, west);
+            Kit.Prop("cardboard_box_01", new Vector3(-2.72f, 2.14f, 46.75f), 100, west, false, 0.9f);
+            Kit.Box("OldDoor", new Vector3(-2.86f, 1.02f, 45.75f), new Vector3(0.05f, 2.0f, 0.85f), greenPaint, west)
+                .transform.localRotation = Quaternion.Euler(0, 0, -5);
+            Kit.Prop("wooden_crate_02", new Vector3(-2.45f, 0, 47.1f), 82, west);
+            Kit.Prop("wooden_crate_01", new Vector3(-2.45f, crateB, 47.1f), 98, west);
+            Lying("old_tyre", new Vector3(-1.98f, crateB + crateA + plastic + tyre / 2, 46.55f), new Vector3(90, 20, 0), west);
+            Kit.Prop("trashbag", new Vector3(-1.85f, 0, 45.32f), 250, west);
+            Kit.Prop("cardboard_box_01", new Vector3(-2.35f, 0, 45.12f), 30, west);
+            Kit.Prop("plastic_broom", new Vector3(-1.62f, 0, 46.05f), 100, west);
+            Kit.Prop("wooden_crate_02", new Vector3(-2.02f, 0, 45.55f), 8, west);
+            Kit.Prop("wooden_crate_02", new Vector3(-2.08f, crateB, 45.6f), -7, west);
+            Kit.Prop("wooden_crate_01", new Vector3(-2.0f, crateB * 2, 45.58f), 24, west);
+            Kit.Prop("wooden_crate_02", new Vector3(-1.95f, 0, 46.55f), 96, west);
+            Kit.Prop("wooden_crate_01", new Vector3(-1.98f, crateB, 46.5f), 82, west);
+            Kit.Prop("plastic_crate_01", new Vector3(-1.95f, crateB + crateA, 46.35f), 10, west);
+            Kit.Prop("plastic_crate_01", new Vector3(-1.98f, crateB + crateA, 46.75f), 95, west);
+            Lying("painted_wooden_chair_01", new Vector3(-2.05f, crateB * 2 + crateA + 0.3f, 45.62f), new Vector3(172, 35, 8), west);
+            Kit.Prop("small_lpg_tank", new Vector3(-1.95f, 0, 47.35f), 0, west);
+            Kit.Prop("small_lpg_tank", new Vector3(-2.4f, 0, 47.5f), 70, west);
+            Lying("old_tyre", new Vector3(-1.78f, 0.3f, 47.72f), new Vector3(12, 0, 0), west);
+            Lying("old_tyre", new Vector3(-2.75f, 0.3f, 45.42f), new Vector3(0, 90, 14), west);
+            Kit.Prop("trashbag", new Vector3(-2.6f, 0, 45.85f), 40, west);
+            Kit.Prop("trashbag", new Vector3(-2.35f, 0, 46.2f), 170, west, false, 0.9f);
+            Material plank = S("old_wood_floor");
+            for (int i = 0; i < 3; i++)
+                Kit.Box("Plank", new Vector3(-2.75f + i * 0.2f, 1.18f, 47.6f - i * 0.03f), new Vector3(0.16f, 2.4f, 0.035f), plank, west)
+                    .transform.localRotation = Quaternion.Euler(-9 - i * 2, 0, i * 3 - 3);
+            Kit.Box("TinSheet", new Vector3(-2.2f, 0.95f, 47.5f), new Vector3(1.0f, 1.9f, 0.015f), S("corrugated_iron_02"), west)
+                .transform.localRotation = Quaternion.Euler(-14, 8, 0);
+
+            // East heap.
+            Blocker("HeapEast", new Vector3(2.25f, 0.8f, 46.55f), new Vector3(1.5f, 1.6f, 2.7f));
+            Transform east = Group("HeapEast", Vector3.zero, 0);
+            for (int i = 0; i < 4; i++)
+                Kit.Prop("plastic_monobloc_chair_01", new Vector3(2.1f, i * 0.11f, 45.62f), 205 + i * 2, east);
+            float[,] cartons = { { 2.7f, 0, 45.6f, 5 }, { 2.72f, 1, 45.62f, 80 }, { 2.68f, 2, 45.6f, 20 }, { 2.15f, 2.4f, 46.28f, 60 } };
+            for (int i = 0; i < cartons.GetLength(0); i++)
+                Kit.Prop("cardboard_box_01", new Vector3(cartons[i, 0], cartons[i, 1] * box, cartons[i, 2]), cartons[i, 3], east);
+            for (int i = 0; i < 4; i++)
+                Kit.Prop("cement_bag", new Vector3(1.98f + (i % 2) * 0.03f, bag * i, 46.95f), 92 + (i - 2) * 6, east);
+            Kit.Prop("boombox", new Vector3(1.98f, bag * 4, 46.95f), -80, east);
+            Kit.Prop("steel_frame_shelves_01", new Vector3(2.74f, 0, 46.4f), -90, east);
+            Kit.Prop("cardboard_box_01", new Vector3(2.74f, 1.03f, 46.2f), -80, east);
+            Kit.Prop("plastic_crate_01", new Vector3(2.74f, 1.53f, 46.55f), -95, east);
+            Kit.Prop("small_lpg_tank", new Vector3(2.74f, 2.14f, 46.45f), 0, east, false, 0.8f);
+            Kit.Box("OldDoor", new Vector3(2.3f, 1.0f, 47.72f), new Vector3(0.9f, 2.0f, 0.05f), Art.Plain(new Color(0.36f, 0.42f, 0.46f), 0.3f), east)
+                .transform.localRotation = Quaternion.Euler(-7, 0, 0);
+            Kit.Prop("trashbag", new Vector3(1.82f, 0, 45.35f), 0, east);
+            Kit.Prop("trashbag", new Vector3(2.5f, 0, 45.2f), 120, east, false, 1.1f);
+            Kit.Prop("wooden_crate_02", new Vector3(2.15f, 0, 46.25f), 100, east);
+            Kit.Prop("wooden_crate_01", new Vector3(2.15f, crateB, 46.3f), 85, east);
+            for (int i = 0; i < 4; i++)
+                Lying("old_tyre", new Vector3(2.5f + (i % 2) * 0.04f, tyre * (i + 0.5f), 47.4f), new Vector3(90, i * 40, 0), east);
+            Lying("wooden_ladder_02", new Vector3(2.3f, 1.12f, 46.75f), new Vector3(62, 4, 6), east);
+            Kit.Prop("utility_box_01", new Vector3(2.0f, 0, 47.62f), 185, east);
+            Kit.Prop("plastic_jerrycan", new Vector3(1.75f, 0, 46.35f), 20, east);
+            Kit.Prop("plastic_jerrycan", new Vector3(1.72f, 0, 45.72f), 110, east);
+            Kit.Prop("plastic_broom", new Vector3(1.66f, 0, 47.1f), -100, east);
+            Kit.Prop("planter_box_01", new Vector3(2.3f, bag * 4 + 0.02f, 47.05f), 10, east, false, 0.8f);
+
+            // Small things wedged into the gateway itself.
+            Kit.Prop("plastic_crate_01", new Vector3(-1.15f, 0, 48.0f), 15, root);
+            Lying("old_tyre", new Vector3(-0.75f, 0.3f, 48.12f), new Vector3(-10, 0, 0), root);
         }
 
         private static void BuildCourtyard()
@@ -901,10 +1309,11 @@ namespace DontForgetMe
             game.Woman = Actor("woman", "同行的她", new Vector3(2, 0.1f, 4), "Woman", "f_idle_neutral_01", "f_walk_neutral", "f_run_neutral", "f_run_fast_01");
             game.Dog = Actor("dog", "狗", new Vector3(0.7f, 0.1f, 4), "Dog");
             game.Zhou = Actor("zhou", "老周", new Vector3(-7.0f, 0.2f, 14.1f), "Zhou", "m_idle_look_around_01", "m_walk_neutral", "m_run_neutral");
-            game.ResidentA = Actor("residentA", "街坊", new Vector3(-1, 0.1f, 20), "ResidentA", "f_idle_neutral_01", "f_walk_neutral", "f_run_neutral");
-            game.ResidentB = Actor("residentB", "街坊", new Vector3(1.5f, 0.1f, 18), "ResidentB", "m_idle_neutral_01", "m_walk_neutral", "m_run_neutral");
+            game.ResidentA = Actor("residentA", "街坊", browseSpot, "ResidentA", "f_idle_neutral_01", "f_walk_neutral", "f_run_neutral");
+            game.ResidentB = Actor("residentB", "街坊", chatSpot, "ResidentB", "m_idle_neutral_01", "m_walk_neutral", "m_run_neutral");
             game.Dog.FollowTarget = game.Woman.transform;
             game.Dog.FollowOffset = new Vector3(-0.9f, 0, -0.4f);
+            game.Dog.RunSpeed = 5.4f;
 
             game.Woman.transform.rotation = Quaternion.Euler(0, 215, 0);
             game.Woman.Body.LookTarget = player.transform;
@@ -912,21 +1321,46 @@ namespace DontForgetMe
             game.Dog.DogBody.LookTarget = player.transform;
             game.Zhou.transform.rotation = Quaternion.Euler(0, 0, 0);
             game.Zhou.Body.Stance("m_work_table");
-            game.ResidentA.transform.rotation = Quaternion.Euler(0, 100, 0);
-            game.ResidentB.transform.rotation = Quaternion.Euler(0, 285, 0);
-            game.ResidentA.Body.Stance("f_gestic_talk_neutral_01");
+
+            // The two neighbours start the day as customers of the general store: one crouched
+            // over the basins on the pavement, the other passing the time with the man behind the counter.
+            GameObject keeper = new GameObject("keeper");
+            Vector3 outOfShop = shopDoor - keeperSpot, toCounter = keeperSpot - chatSpot, toGoods = shopDoor - browseSpot;
+            outOfShop.y = toCounter.y = toGoods.y = 0;
+            keeper.transform.SetPositionAndRotation(keeperSpot, Quaternion.LookRotation(outOfShop));
+            Model(keeper.transform, "Keeper", "m_gestic_talk_neutral_01", "m_walk_neutral", null, null);
+            SetLayer(keeper, 8);
+            game.Keeper = keeper.GetComponentInChildren<CharacterAnimator>();
+            game.Keeper.LookTarget = game.ResidentB.transform;
+            game.ShopShutter = shopShutter;
+            game.ResidentA.transform.rotation = Quaternion.LookRotation(toGoods);
+            game.ResidentB.transform.rotation = Quaternion.LookRotation(toCounter);
+            game.ResidentA.Body.Stance("m_crouch_idle");
             game.ResidentB.Body.Stance("m_gestic_talk_neutral_01");
-            game.ResidentA.Body.LookTarget = game.ResidentB.transform;
-            game.ResidentB.Body.LookTarget = game.ResidentA.transform;
+            game.ResidentB.Body.LookTarget = keeper.transform;
+
+            // The hammer old Zhou works the gate with; it only shows while he is using it.
+            Transform grip = game.Zhou.Body.Bone(HumanBodyBones.RightHand);
+            if (grip != null)
+            {
+                Vector3 handle = game.Zhou.transform.forward;
+                GameObject hammer = Kit.Prop("cross_pein_hammer", Vector3.zero, Vector3.one, Quaternion.identity, null, false, Vector3.zero);
+                hammer.transform.SetPositionAndRotation(grip.position + game.Zhou.transform.right * 0.08f - Vector3.up * 0.02f,
+                    Quaternion.LookRotation(Vector3.down, handle));
+                hammer.transform.SetParent(grip, true);
+                SetLayer(hammer, 8);
+                hammer.SetActive(false);
+                game.ZhouTool = hammer;
+            }
 
             game.AddInteraction(game.Zhou.gameObject, "和修理铺的人说话",
                 () => game.State.Phase == OpeningPhase.Street, game.MeetZhou);
             game.AddInteraction(game.Woman.gameObject, "确认她和狗都平安",
                 () => game.State.Phase == OpeningPhase.Reunion, game.Reunite);
-            game.AddInteraction(game.Zhou.gameObject, "帮老周扶住门，开始修理",
-                () => game.State.Phase == OpeningPhase.Debris && game.State.ClearedDebrisCount == 2, game.StartRepair);
+            game.AddInteraction(game.Zhou.gameObject, "帮老周顶住，让他开始弄门",
+                () => game.State.Phase == OpeningPhase.Debris && game.State.ClearedDebrisCount == game.State.DebrisRequired, game.StartRepair);
             game.AddInteraction(game.Zhou.gameObject, "确认大家都跟上了",
-                () => game.State.Phase == OpeningPhase.Regroup, game.Finish);
+                () => game.State.Phase == OpeningPhase.Regroup && game.GateShut, game.Finish);
         }
     }
 }
