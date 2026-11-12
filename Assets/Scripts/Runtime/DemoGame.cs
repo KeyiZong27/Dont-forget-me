@@ -132,7 +132,8 @@ namespace DontForgetMe
 
         private static void Spawn()
         {
-            if (Instance == null)
+            // Only the opening scene hosts this game; other scenes in the project are left alone.
+            if (Instance == null && SceneManager.GetActiveScene().name == "Opening")
                 new GameObject("OpeningDemo").AddComponent<DemoGame>();
         }
 

@@ -139,6 +139,144 @@ namespace DontForgetMe.Tests
     }
 
     [TestFixture]
+    public sealed class JourneyTests
+    {
+        [Test]
+        public void EntireJourneyCanFinishWithoutSharingWater()
+        {
+            JourneyState journey = AtMorning();
+            Assert.That(journey.CopyAddress(), Is.True);
+            Assert.That(journey.Farewell(), Is.True);
+            Assert.That(journey.Phase, Is.EqualTo(JourneyPhase.Complete));
+            Assert.That(journey.SharedWater, Is.False);
+        }
+
+        [Test]
+        public void DepartureNeedsBothCallsAndEachCallHappensOnce()
+        {
+            JourneyState journey = new JourneyState();
+            Assert.That(journey.Depart(), Is.False);
+            Assert.That(journey.CallFamily(), Is.True);
+            Assert.That(journey.CallFamily(), Is.False);
+            Assert.That(journey.Depart(), Is.False);
+            Assert.That(journey.CallMother(), Is.True);
+            Assert.That(journey.CallMother(), Is.False);
+            Assert.That(journey.Depart(), Is.True);
+            Assert.That(journey.Depart(), Is.False);
+            Assert.That(journey.CallFamily(), Is.False);
+        }
+
+        [Test]
+        public void GlassCanOnlyBeRemovedAfterCalmingTheDog()
+        {
+            JourneyState journey = AtPath();
+            Assert.That(journey.RemoveGlass(), Is.False);
+            Assert.That(journey.EnterShelter(), Is.False);
+            Assert.That(journey.CalmDog(), Is.True);
+            Assert.That(journey.CalmDog(), Is.False);
+            Assert.That(journey.EnterShelter(), Is.False);
+            Assert.That(journey.RemoveGlass(), Is.True);
+            Assert.That(journey.RemoveGlass(), Is.False);
+            Assert.That(journey.EnterShelter(), Is.True);
+        }
+
+        [Test]
+        public void RestNeedsPersuadingZhouFirst()
+        {
+            JourneyState journey = AtShelter();
+            Assert.That(journey.Rest(), Is.False);
+            Assert.That(journey.PersuadeZhou(), Is.True);
+            Assert.That(journey.PersuadeZhou(), Is.False);
+            Assert.That(journey.Rest(), Is.True);
+            Assert.That(journey.Phase, Is.EqualTo(JourneyPhase.Night));
+        }
+
+        [Test]
+        public void SleepNeedsTheDoorCloserFixed()
+        {
+            JourneyState journey = AtNight();
+            Assert.That(journey.Sleep(), Is.False);
+            Assert.That(journey.FixDoor(), Is.True);
+            Assert.That(journey.FixDoor(), Is.False);
+            Assert.That(journey.Sleep(), Is.True);
+            Assert.That(journey.Phase, Is.EqualTo(JourneyPhase.Morning));
+        }
+
+        [Test]
+        public void FarewellNeedsTheAddressCopied()
+        {
+            JourneyState journey = AtMorning();
+            Assert.That(journey.Farewell(), Is.False);
+            Assert.That(journey.CopyAddress(), Is.True);
+            Assert.That(journey.CopyAddress(), Is.False);
+            Assert.That(journey.Farewell(), Is.True);
+            Assert.That(journey.Farewell(), Is.False);
+        }
+
+        [Test]
+        public void SharingWaterIsOptionalOnceAndOnlyAtTheShelter()
+        {
+            JourneyState journey = AtPath();
+            Assert.That(journey.ShareWater(), Is.False);
+            journey.CalmDog();
+            journey.RemoveGlass();
+            journey.EnterShelter();
+            Assert.That(journey.ShareWater(), Is.True);
+            Assert.That(journey.ShareWater(), Is.False);
+            Assert.That(journey.SharedWater, Is.True);
+        }
+
+        [Test]
+        public void LaterStagesCannotRunBeforeTheirPhase()
+        {
+            JourneyState journey = new JourneyState();
+            Assert.That(journey.CalmDog(), Is.False);
+            Assert.That(journey.RemoveGlass(), Is.False);
+            Assert.That(journey.PersuadeZhou(), Is.False);
+            Assert.That(journey.Rest(), Is.False);
+            Assert.That(journey.FixDoor(), Is.False);
+            Assert.That(journey.Sleep(), Is.False);
+            Assert.That(journey.CopyAddress(), Is.False);
+            Assert.That(journey.Farewell(), Is.False);
+            Assert.That(journey.Phase, Is.EqualTo(JourneyPhase.Calls));
+        }
+
+        private static JourneyState AtPath()
+        {
+            JourneyState journey = new JourneyState();
+            journey.CallFamily();
+            journey.CallMother();
+            journey.Depart();
+            return journey;
+        }
+
+        private static JourneyState AtShelter()
+        {
+            JourneyState journey = AtPath();
+            journey.CalmDog();
+            journey.RemoveGlass();
+            journey.EnterShelter();
+            return journey;
+        }
+
+        private static JourneyState AtNight()
+        {
+            JourneyState journey = AtShelter();
+            journey.PersuadeZhou();
+            journey.Rest();
+            return journey;
+        }
+
+        private static JourneyState AtMorning()
+        {
+            JourneyState journey = AtNight();
+            journey.FixDoor();
+            journey.Sleep();
+            return journey;
+        }
+    }
+
+    [TestFixture]
     public sealed class MemoryTests
     {
         [Test]
