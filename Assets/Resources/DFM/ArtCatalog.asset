@@ -805,6 +805,22 @@ MonoBehaviour:
     asset: {fileID: 8075978041453937383, guid: 8e9e973be31484fcba5331f568750fe2, type: 3}
     size: {x: 0.3092419, y: 0.6171986, z: 0.7618293}
     center: {x: 0.0000004917383, y: 0.30300343, z: 0.021458536}
+  - id: char/HostileB
+    asset: {fileID: 8269953189426337026, guid: 55fde6ae96d26424c90e6dd3ff4525ee, type: 3}
+    size: {x: 1.3660442, y: 1.8401909, z: 0.373477}
+    center: {x: -0.00000011920929, y: 0.9168596, z: 0.031789348}
+  - id: char/HostileC
+    asset: {fileID: 2943867714330880439, guid: 94e143255240b4fc0aa3da55c54025fc, type: 3}
+    size: {x: 1.3841535, y: 1.8212383, z: 0.37684688}
+    center: {x: -0.00000011920929, y: 0.90743846, z: 0.024636105}
+  - id: char/HostileD
+    asset: {fileID: 2561975365855062959, guid: 6ddada94a65e7476782a7c1edf7fd60b, type: 3}
+    size: {x: 1.2364056, y: 1.7585945, z: 0.34663975}
+    center: {x: -0.0012924075, y: 0.87630326, z: -0.037137568}
+  - id: char/Keeper
+    asset: {fileID: 7134578996227822220, guid: 9e51a2989b3264eb492a7374a765b457, type: 3}
+    size: {x: 1.3880998, y: 1.8277295, z: 0.39914536}
+    center: {x: -0.0010658503, y: 0.9105429, z: 0.012924761}
   - id: char/Player
     asset: {fileID: 7134348672667701097, guid: cc962df34e8d44abc97a89b3b38cebaa, type: 3}
     size: {x: 1.3891282, y: 1.8404665, z: 0.36291507}
@@ -908,14 +924,6 @@ MonoBehaviour:
   - id: clip/m_work_table
     asset: {fileID: 1827226128182048838, guid: 701d9c641042e45ae857f01608efd185, type: 3}
     size: {x: 11.3, y: 0, z: 1}
-    center: {x: 0, y: 0, z: 0}
-  - id: sky
-    asset: {fileID: 8900000, guid: e7d07a42357094fd69906e62c6e29220, type: 3}
-    size: {x: 0, y: 0, z: 0}
-    center: {x: 0, y: 0, z: 0}
-  - id: skysamples
-    asset: {fileID: 4900000, guid: d1c662471306348aaa20b72436010b0d, type: 3}
-    size: {x: 0, y: 0, z: 0}
     center: {x: 0, y: 0, z: 0}
   - id: mat/sky
     asset: {fileID: 2100000, guid: 04b9d450ab67c4d0ca3e13fbbfa1aa52, type: 2}

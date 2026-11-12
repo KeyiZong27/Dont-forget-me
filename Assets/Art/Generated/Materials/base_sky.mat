@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: base_sky
-  m_Shader: {fileID: 103, guid: 0000000000000000f000000000000000, type: 0}
+  m_Shader: {fileID: 4800000, guid: 279e13770328f4283a887816e75de147, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -23,16 +23,16 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs:
-    - _Tex:
-        m_Texture: {fileID: 8900000, guid: e7d07a42357094fd69906e62c6e29220, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
+    m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _Exposure: 1
-    - _Rotation: 0
+    - _Multiple: 0.5
+    - _SunAirmass: 5.6
+    - _TauM: 0.16
+    - _Top: 4
     m_Colors:
-    - _Tint: {r: 0.5, g: 0.5, b: 0.5, a: 0.5}
+    - _Disc: {r: 40, g: 28, b: 12, a: 0}
+    - _SunDir: {r: 0.14, g: 0.17, b: -0.97, a: 0}
+    - _TauR: {r: 0.0464, g: 0.108, b: 0.265, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

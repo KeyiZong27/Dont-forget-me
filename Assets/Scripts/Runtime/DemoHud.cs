@@ -232,19 +232,38 @@ namespace DontForgetMe
             Bar(40, height - 92, "生命", game.Player.Health / 100f, new Color(0.82f, 0.36f, 0.30f));
             Bar(40, height - 70, "体力", game.Player.Stamina / 100f, new Color(0.88f, 0.84f, 0.72f));
             Bar(40, height - 48, "精力", game.Player.Energy / 100f, new Color(0.55f, 0.66f, 0.74f));
+            if (game.Player.Held != null)
+                Text(new Rect(40, height - 122, 300, 20), "手里　" + game.Player.Held.Name, small);
+
+            // How badly each of them is hurt shows for a moment after a blow lands, then fades.
+            foreach (Hostile hostile in game.Siege.Hostiles)
+            {
+                float shown = 1f - Mathf.Clamp01((Time.time - hostile.HurtAt - 1.2f) / 0.8f);
+                if (shown <= 0 || hostile.Fallen) continue;
+                Vector3 screen = game.View.WorldToScreenPoint(hostile.transform.position + Vector3.up * 2.0f);
+                if (screen.z <= 0) continue;
+                float x = screen.x / scale - 22, y = (Screen.height - screen.y) / scale;
+                Draw(white, new Rect(x, y, 44, 3), new Color(0, 0, 0, 0.5f * shown));
+                Draw(white, new Rect(x, y, 44 * hostile.Health / hostile.MaxHealth, 3), new Color(0.82f, 0.36f, 0.30f, 0.9f * shown));
+            }
 
             if (game.State.Phase == OpeningPhase.Repair)
             {
                 float progress = game.State.RepairProgress;
-                Text(new Rect(width / 2 - 200, 34, 400, 22), "老周正在修门", smallCentre);
+                bool stalled = game.RepairStalled;
+                // While someone has hold of him the bar stops and says so.
+                float pulse = stalled ? 0.6f + 0.4f * Mathf.Sin(Time.time * 9f) : 1f;
+                Text(new Rect(width / 2 - 200, 34, 400, 22), stalled ? "老周被缠住了 · 门停了" : "老周正在砸开锈死的链子、校正轨道", smallCentre, pulse);
                 Draw(white, new Rect(width / 2 - 150, 62, 300, 3), new Color(1, 1, 1, 0.18f));
-                Draw(white, new Rect(width / 2 - 150, 62, 300 * progress, 3), Amber);
+                Draw(white, new Rect(width / 2 - 150, 62, 300 * progress, 3), stalled ? new Color(0.82f, 0.36f, 0.30f, pulse) : Amber);
             }
 
             bool live = !game.IsPaused && !game.IsFailed && game.State.Phase != OpeningPhase.Complete;
             if (live)
             {
-                DrawMarker(game.ObjectivePosition + Vector3.up * 2.25f, width, height, scale, game);
+                // During the fight the player is meant to be facing the alley, not a marker behind them.
+                if (game.State.Phase != OpeningPhase.Repair)
+                    DrawMarker(game.ObjectivePosition + Vector3.up * 2.25f, width, height, scale, game);
                 if (game.Nearest != null)
                 {
                     Vector2 size = prompt.CalcSize(new GUIContent(game.Nearest.Prompt)) / k;
@@ -264,7 +283,7 @@ namespace DontForgetMe
             float hint = live ? Mathf.Clamp01((28f - (Time.time - game.StartedAt)) / 3f) : 1f;
             if (hint > 0)
                 Text(new Rect(width - 660, height - 36, 620, 22),
-                    "WASD 移动    鼠标 视角    Shift 奔跑    E 互动    F 推开    Esc 暂停", smallRight, hint * 0.85f);
+                    "WASD 移动    鼠标 视角    Shift 奔跑    E 互动    F 抄家伙 / 挥击    Esc 暂停", smallRight, hint * 0.85f);
         }
 
         // Colours the speaker's name at the start of each spoken line.
@@ -300,7 +319,7 @@ namespace DontForgetMe
             Text(new Rect(x, y + 142, 620, 30), "死亡不是生命的结束，遗忘才是。", tagline);
             Text(new Rect(x, y + 194, 560, 110),
                 "一段尚未走完的普通日常，和一条需要一起走出去的后巷。\n先照顾狗，认识修理铺的人；骚乱发生后找到同伴，再合作撤离。\n没有强制死亡、失忆或异化，也不要求击杀异常者。", small);
-            Text(new Rect(x, y + 300, 620, 24), "WASD 移动    鼠标 视角    Shift 奔跑    E 互动    F 推开    Esc 暂停", small);
+            Text(new Rect(x, y + 300, 620, 24), "WASD 移动    鼠标 视角    Shift 奔跑    E 互动    F 抄家伙 / 挥击    Esc 暂停", small);
             if (Button(new Rect(x, y + 352, 250, 48), "开始这段旅程")) game.Begin();
         }
 
@@ -325,7 +344,7 @@ namespace DontForgetMe
             Draw(white, new Rect(x, y + 82, 72, 2), new Color(Amber.r, Amber.g, Amber.b, alpha));
             string text = success
                 ? "她、狗、老周，还有街坊，都过来了。\n\n老周准备往服务站方向走。他没有承诺那里安全，只说至少有能遮雨的地方。你们决定先与他同行。\n\n开场 Demo 到此结束。没有人被剧情强制遗忘。"
-                : "可以推开对方、绕行，也可以提前站到门边等待通过。\n目标是争取修门时间，不需要正面打倒对方。";
+                : "别站着让他们围住：先按 F 从杂物里抄一样东西，它只打得到面前够得着的人，打完就换位置。\n街坊和她也在挡。先把缠住老周的人打开，门才开得动；撑到门开就走。";
             Text(new Rect(x, y + 104, 660, 170), text, body, alpha);
             if (success)
                 Text(new Rect(x, y + 268, 660, 40),
@@ -352,24 +371,6 @@ namespace DontForgetMe
             Draw(diamond, new Rect(x - 9, y - 9, 18, 18), new Color(Amber.r, Amber.g, Amber.b, pulse));
             Text(new Rect(x - 60, y + 10, 120, 20),
                 Mathf.RoundToInt(Vector3.Distance(game.Player.transform.position, world)) + " 米", smallCentre);
-        }
-
-        private void DrawMeter(Rect rect, string label, float value, float maxValue,
-            Color fillColor, string valueLabel)
-        {
-            GUI.Label(new Rect(rect.x, rect.y, rect.width / 2, 20), label, small);
-            GUI.Label(new Rect(rect.x + rect.width / 2, rect.y, rect.width / 2, 20), valueLabel, statValue);
-            Rect track = new Rect(rect.x, rect.y + 23, rect.width, 7);
-            Color previousColor = GUI.color;
-            GUI.color = new Color(0.72f, 0.75f, 0.75f, 1f);
-            GUI.DrawTexture(track, meterTexture);
-            GUI.color = previousColor;
-            float normalized = maxValue > 0 ? Mathf.Clamp01(value / maxValue) : 0;
-            if (normalized <= 0) return;
-            Rect fill = new Rect(track.x, track.y, track.width * normalized, track.height);
-            GUI.color = fillColor;
-            GUI.DrawTexture(fill, meterTexture);
-            GUI.color = previousColor;
         }
 
         private void OnDestroy()

@@ -6,7 +6,8 @@ using UnityEngine.Rendering.Universal;
 
 namespace DontForgetMe
 {
-    // Sky, sun, fog, reflections and the camera's film look. Gameplay only tells it how tense
+    // Sun, sky, fog, reflections and the camera's film look. The hour is dusk: the sun stands low
+    // in the south and is the only natural light (see Sky). Gameplay only tells this how tense
     // the moment is and whether a menu is open; everything else follows from that.
     public sealed class Atmosphere : MonoBehaviour
     {
@@ -14,7 +15,9 @@ namespace DontForgetMe
         public float Tension { get; set; }
         public bool MenuBlur { get; set; } = true;
         public Light Sun { get; private set; }
-        public static readonly Quaternion SunRotation = Quaternion.Euler(36f, -32f, 0f);
+        // Ten degrees up and a little east of the street's axis, so the light rakes the west
+        // fronts and reaches down the alley from behind whoever comes in from the street.
+        private const float SunElevation = 10f, SunBearing = 8f;
 
         private readonly List<ReflectionProbe> probes = new List<ReflectionProbe>();
         private Camera view;
@@ -39,27 +42,28 @@ namespace DontForgetMe
             QualitySettings.skinWeights = SkinWeights.FourBones;
             QualitySettings.lodBias = 2f;
 
+            Sky.Place(SunElevation, SunBearing);
             Material sky = Art.Own(new Material(Art.Base("sky")));
-            sky.SetFloat("_Exposure", 1.05f);
+            Sky.Apply(sky);
             RenderSettings.skybox = sky;
             RenderSettings.ambientMode = AmbientMode.Custom;
-            RenderSettings.ambientProbe = Art.SkyAmbient(1.4f);
+            RenderSettings.ambientProbe = Sky.Ambient();
+            // Reflections come from probes that render the sky themselves; see AddSkyProbe.
             RenderSettings.defaultReflectionMode = DefaultReflectionMode.Custom;
-            RenderSettings.customReflectionTexture = Art.Get<Cubemap>("sky");
+            RenderSettings.customReflectionTexture = null;
             RenderSettings.reflectionIntensity = 1f;
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogColor = new Color(0.62f, 0.63f, 0.64f);
-            RenderSettings.fogDensity = 0.009f;
+            RenderSettings.fogColor = Sky.Haze();
+            RenderSettings.fogDensity = 0.011f;
 
-            Sun = new GameObject("LateAfternoonSun").AddComponent<Light>();
+            Sun = new GameObject("Sun").AddComponent<Light>();
             Sun.type = LightType.Directional;
-            Sun.color = new Color(1f, 0.81f, 0.60f);
-            Sun.intensity = 2.7f;
             Sun.shadows = LightShadows.Soft;
-            Sun.shadowStrength = 0.96f;
-            Sun.transform.rotation = SunRotation;
+            Sun.shadowStrength = 1f;
+            Sky.Apply(Sun);
             RenderSettings.sun = Sun;
+            AddSkyProbe();
 
             camera.allowHDR = true;
             camera.nearClipPlane = 0.12f;
@@ -107,6 +111,24 @@ namespace DontForgetMe
             probe.nearClipPlane = 0.1f;
             probe.farClipPlane = 150f;
             probe.cullingMask = ~(1 << 8);
+            probes.Add(probe);
+        }
+
+        // Whatever lies outside the local probes reflects the bare sky.
+        private void AddSkyProbe()
+        {
+            ReflectionProbe probe = new GameObject("SkyReflections").AddComponent<ReflectionProbe>();
+            probe.transform.SetParent(transform, false);
+            probe.transform.position = new Vector3(0, 40f, 34f);
+            probe.size = new Vector3(900f, 300f, 900f);
+            probe.importance = 0;
+            probe.mode = ReflectionProbeMode.Realtime;
+            probe.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
+            probe.timeSlicingMode = ReflectionProbeTimeSlicingMode.NoTimeSlicing;
+            probe.resolution = 64;
+            probe.hdr = true;
+            probe.clearFlags = ReflectionProbeClearFlags.Skybox;
+            probe.cullingMask = 0;
             probes.Add(probe);
         }
 
@@ -194,11 +216,11 @@ namespace DontForgetMe
             }
             if (grade != null)
             {
-                grade.postExposure.value = Mathf.Lerp(0.8f, 0.7f, tension);
+                grade.postExposure.value = Mathf.Lerp(0.55f, 0.45f, tension);
                 grade.saturation.value = Mathf.Lerp(-8f, -24f, tension);
-                grade.contrast.value = Mathf.Lerp(10f, 20f, tension);
+                grade.contrast.value = Mathf.Lerp(6f, 14f, tension);
             }
-            if (balance != null) balance.temperature.value = Mathf.Lerp(6f, -9f, tension);
+            if (balance != null) balance.temperature.value = Mathf.Lerp(0f, -8f, tension);
             if (vignette != null) vignette.intensity.value = Mathf.Lerp(0.26f, 0.4f, Mathf.Max(tension, blur * 0.6f));
             if (aberration != null) aberration.intensity.value = Mathf.Lerp(0.05f, 0.2f, tension);
             if (grain != null) grain.intensity.value = Mathf.Lerp(0.22f, 0.42f, tension);

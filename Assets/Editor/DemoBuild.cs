@@ -11,7 +11,6 @@ namespace DontForgetMe.Editor
     public static class DemoBuild
     {
         private const string ScenePath = "Assets/Scenes/Opening.unity";
-        private const string SandboxPath = "Assets/Scenes/Sandbox.unity";
 
         static DemoBuild()
         {
@@ -21,11 +20,7 @@ namespace DontForgetMe.Editor
         private static void ConfigureProject()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
-            EditorBuildSettings.scenes = new[]
-            {
-                new EditorBuildSettingsScene(ScenePath, true),
-                new EditorBuildSettingsScene(SandboxPath, true)
-            };
+            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             PlayerSettings.companyName = "DontForgetMe";
             PlayerSettings.productName = "Dont Forget Me - Opening";
             PlayerSettings.defaultScreenWidth = 1600;
@@ -68,13 +63,6 @@ namespace DontForgetMe.Editor
                 EditorSceneManager.OpenScene(ScenePath);
         }
 
-        [MenuItem("Dont Forget Me/Open Sandbox Scene")]
-        public static void OpenSandbox()
-        {
-            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                EditorSceneManager.OpenScene(SandboxPath);
-        }
-
         [MenuItem("Dont Forget Me/Build/macOS")]
         public static void BuildMac()
         {
@@ -87,19 +75,7 @@ namespace DontForgetMe.Editor
             Build(BuildTarget.StandaloneWindows64, "Builds/Windows/DontForgetMe.exe");
         }
 
-        [MenuItem("Dont Forget Me/Build Sandbox/Windows x64")]
-        public static void BuildSandboxWindows()
-        {
-            Build(BuildTarget.StandaloneWindows64, "Builds/SandboxWindows/DontForgetMeSandbox.exe", true);
-        }
-
-        [MenuItem("Dont Forget Me/Build Sandbox/macOS")]
-        public static void BuildSandboxMac()
-        {
-            Build(BuildTarget.StandaloneOSX, "Builds/SandboxMac/DontForgetMeSandbox.app", true);
-        }
-
-        private static void Build(BuildTarget target, string path, bool sandboxFirst = false)
+        private static void Build(BuildTarget target, string path)
         {
             if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, target))
                 throw new InvalidOperationException("Install the " + target + " Build Support module in Unity Hub first.");
@@ -107,7 +83,7 @@ namespace DontForgetMe.Editor
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             BuildReport report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
-                scenes = sandboxFirst ? new[] { SandboxPath, ScenePath } : new[] { ScenePath, SandboxPath },
+                scenes = new[] { ScenePath },
                 locationPathName = path,
                 target = target,
                 options = BuildOptions.None

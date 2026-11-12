@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 namespace DontForgetMe
@@ -8,19 +9,25 @@ namespace DontForgetMe
         public float Stamina { get; private set; } = 100f;
         public float Health { get; private set; } = 100f;
         public float Energy { get; private set; } = 100f;
-        public float EnergyDrainPerSecond { get; private set; }
         public float Heading { get; private set; }
         public float LastHitTime { get; private set; } = -10f;
         public bool Sprinting { get; private set; }
         public float PlanarSpeed => new Vector2(velocity.x, velocity.z).magnitude;
         public CharacterAnimator Body { get; private set; }
+        public Vector3 Forward => model.forward;
         // Lets a scripted walkthrough steer instead of the keyboard: world-space direction and sprint flag.
         public Func<Vector3> ScriptedMove { get; set; }
         public bool ScriptedSprint { get; set; }
         public float Yaw { get => yaw; set => yaw = value; }
         public float Pitch { get => pitch; set => pitch = value; }
+        // Hands full (carrying something off the pile): the controls wait until it is set down.
+        public bool Busy { get; private set; }
+        public bool Walking => walkTarget.HasValue;
+        public int ShovesLanded { get; private set; }
+        public Weapon Held => Body.Carried;
 
         private CharacterController controller;
+        private Crowd.Body body;
         private Transform model;
         private Camera view;
         private float yaw;
@@ -31,23 +38,43 @@ namespace DontForgetMe
         private float shake;
         private float distance = 4.3f;
         private float stepTravel;
+        private float shoveAt = -1f;
+        private float faceHeldUntil;
         private Vector3 velocity;
+        private Vector3 thrown;
         private Vector3 pivotSmooth;
+        private Vector3? walkTarget;
+        private float walkPace;
 
-        public void Configure(Transform body, Camera camera)
+        public void Configure(Transform bodyModel, Camera camera)
         {
-            model = body;
+            model = bodyModel;
             view = camera;
-            Body = body.GetComponent<CharacterAnimator>();
+            Body = bodyModel.GetComponent<CharacterAnimator>();
             controller = gameObject.AddComponent<CharacterController>();
             controller.height = 1.8f;
             controller.radius = 0.34f;
             controller.center = Vector3.up * 0.9f;
             controller.stepOffset = 0.25f;
             controller.skinWidth = 0.03f;
+            controller.minMoveDistance = 0f;
+            body = Crowd.Join(transform, 0.31f, 1.6f);
             yaw = 0;
             pivotSmooth = transform.position;
             UpdateCamera(true);
+        }
+
+        public void Occupy(bool busy)
+        {
+            Busy = busy;
+            if (!busy) walkTarget = null;
+        }
+
+        // A short walk made on the player's behalf while Busy (stepping up to a crate, carrying it off).
+        public void WalkTo(Vector3 point, float pace)
+        {
+            walkTarget = point;
+            walkPace = pace;
         }
 
         private void Update()
@@ -62,9 +89,19 @@ namespace DontForgetMe
                 pitch = Mathf.Clamp(pitch - Input.GetAxisRaw("Mouse Y") * 1.7f, -22f, 65f);
             }
 
-            Vector3 direction;
-            bool wantsSprint;
-            if (finished) { direction = Vector3.zero; wantsSprint = false; }
+            Vector3 direction = Vector3.zero;
+            bool wantsSprint = false;
+            if (finished) { }
+            else if (Busy)
+            {
+                if (walkTarget.HasValue)
+                {
+                    Vector3 to = walkTarget.Value - transform.position;
+                    to.y = 0;
+                    if (to.magnitude < 0.12f) walkTarget = null;
+                    else direction = to.normalized * Mathf.Min(1f, to.magnitude * 4f + 0.3f);
+                }
+            }
             else if (ScriptedMove != null)
             {
                 direction = Vector3.ClampMagnitude(ScriptedMove(), 1f);
@@ -82,16 +119,19 @@ namespace DontForgetMe
             Sprinting = running;
             Stamina = Mathf.Clamp(Stamina + (running ? -19f : 14f) * Time.deltaTime, 0, 100);
             Energy = Mathf.Max(0, Energy - Time.deltaTime * (running ? 0.08f : 0.025f));
-            Vector3 wanted = direction * (running ? 5.2f : 3.2f);
+            Vector3 wanted = direction * (Busy ? walkPace : running ? 5.2f : 3.2f);
             velocity = Vector3.MoveTowards(velocity, wanted, (wanted.sqrMagnitude >= velocity.sqrMagnitude ? 20f : 26f) * Time.deltaTime);
+            thrown = Vector3.Lerp(thrown, Vector3.zero, 1f - Mathf.Exp(-6f * Time.deltaTime));
+            if (thrown.sqrMagnitude < 0.01f) thrown = Vector3.zero;
             fallSpeed = controller.isGrounded ? -2f : fallSpeed - 20f * Time.deltaTime;
             Vector3 before = transform.position;
-            controller.Move((velocity + Vector3.up * fallSpeed) * Time.deltaTime);
+            controller.Move((velocity + thrown + Vector3.up * fallSpeed) * Time.deltaTime + Crowd.Push(body, Time.deltaTime));
             Vector3 moved = transform.position - before;
             moved.y = 0;
             float actual = Time.deltaTime > 0 ? moved.magnitude / Time.deltaTime : 0;
-            if (Body != null) Body.SetSpeed(Mathf.Min(actual, velocity.magnitude + 0.2f));
-            if (velocity.sqrMagnitude > 0.04f)
+            bool backwards = thrown.sqrMagnitude > 0.6f && Vector3.Dot(moved, model.forward) < 0;
+            if (Body != null) Body.SetSpeed(Mathf.Min(actual, velocity.magnitude + thrown.magnitude + 0.2f), backwards);
+            if (velocity.sqrMagnitude > 0.04f && Time.time > faceHeldUntil)
             {
                 Quaternion rotation = Quaternion.LookRotation(new Vector3(velocity.x, 0, velocity.z));
                 model.rotation = Quaternion.Slerp(model.rotation, rotation, 1f - Mathf.Exp(-12f * Time.deltaTime));
@@ -109,28 +149,105 @@ namespace DontForgetMe
             pushCooldown -= Time.deltaTime;
             hitCooldown -= Time.deltaTime;
             if (!finished && Input.GetKeyDown(KeyCode.F)) TryPush();
+
+            // The shove lands when the arms reach full stretch, not when the key goes down.
+            if (shoveAt > 0 && Time.time >= shoveAt)
+            {
+                shoveAt = -1f;
+                int struck = Held != null ? game.Siege.Strike(transform.position, model.forward, Held, 1f, transform)
+                    : game.Siege.ShoveFrom(transform.position, model.forward, 1.7f, 70f, 1f, transform);
+                if (struck > 0)
+                {
+                    ShovesLanded++;
+                    shake = 0.4f;
+                    game.ShoveLanded(struck);
+                }
+            }
         }
 
+        // With empty hands, snatches up whatever lies nearest in the rubbish. With something in
+        // hand, swings it at whoever is in front; with nothing in reach to pick up, shoves with
+        // both hands as before. Only people actually within reach in front are hit.
         public bool TryPush()
         {
             DemoGame game = DemoGame.Instance;
-            if (pushCooldown > 0 || Stamina < 12f || !game.PushThreat()) return false;
-            Stamina -= 12f;
-            pushCooldown = 1.1f;
-            shake = 0.35f;
+            if (pushCooldown > 0 || Stamina < 15f || Busy || shoveAt > 0) return false;
+            if (Held == null && game.Siege.Begun)
+            {
+                Weapon found = game.Reserve(transform.position, 3.4f, 3);
+                if (found != null)
+                {
+                    StartCoroutine(Arm(found));
+                    return true;
+                }
+            }
+            float reach = Held != null ? Held.Reach : 1.75f;
+            Vector3? contact = null;
+            Hostile near = game.Siege.Nearest(transform.position, reach + 0.4f, false);
+            if (near != null)
+            {
+                Vector3 to = near.transform.position - transform.position;
+                to.y = 0;
+                Face(near.transform.position);
+                if (to.magnitude < reach) contact = near.transform.position + Vector3.up * 1.3f - to.normalized * 0.14f;
+            }
+            faceHeldUntil = Time.time + 0.5f;
+            if (Held != null)
+            {
+                Body.Swing(contact);
+                thrown += model.forward * 1.8f;
+                shoveAt = Time.time + 0.27f;
+                Stamina -= Held.TwoHanded ? 17f : 12f;
+                pushCooldown = Held.Recovery;
+            }
+            else
+            {
+                Body.Shove(contact);
+                thrown += model.forward * 2.6f;
+                shoveAt = Time.time + 0.17f;
+                Stamina -= 15f;
+                pushCooldown = 0.85f;
+            }
+            game.Footstep(0.25f);
             return true;
+        }
+
+        // Two quick steps to the thing, a hand down for it, and it is in the fist.
+        private IEnumerator Arm(Weapon weapon)
+        {
+            DemoGame game = DemoGame.Instance;
+            Occupy(true);
+            Vector3 to = weapon.Root.position - transform.position;
+            to.y = 0;
+            if (to.magnitude > 0.8f) WalkTo(weapon.Root.position - to.normalized * 0.7f, 4.6f);
+            for (float until = Time.time + 1.3f; Walking && Time.time < until;) yield return null;
+            walkTarget = null;
+            Face(weapon.Root.position);
+            faceHeldUntil = Time.time + 0.4f;
+            if (weapon.Root.position.y < 0.7f) Body.Stance("m_crouch_idle", 0.3f);
+            Body.Hold(null, () => weapon.Root.position);
+            yield return new WaitForSeconds(0.22f);
+            Body.Release();
+            Body.Carry(weapon);
+            pushCooldown = 0.15f;
+            Occupy(false);
+            game.Armed(weapon);
         }
 
         public void Face(Vector3 point)
         {
             Vector3 to = point - transform.position;
             to.y = 0;
-            if (to.sqrMagnitude > 0.01f) model.rotation = Quaternion.LookRotation(to);
+            if (to.sqrMagnitude > 0.01f)
+            {
+                model.rotation = Quaternion.LookRotation(to);
+                Heading = model.rotation.eulerAngles.y;
+            }
         }
 
         private void LateUpdate()
         {
-            if (view != null && PlayerWorld.CanSimulate) UpdateCamera(false);
+            if (view != null) UpdateCamera(false);
         }
 
         private void UpdateCamera(bool immediate)
@@ -162,14 +279,19 @@ namespace DontForgetMe
             view.fieldOfView = immediate ? lens : Mathf.Lerp(view.fieldOfView, lens, 1f - Mathf.Exp(-4f * dt));
         }
 
-        public void TakeHit()
+        // Struck by someone at "from": knocked back a step, and it hurts.
+        public void TakeHit(Vector3 from, float damage)
         {
             if (hitCooldown > 0) return;
-            Health = Mathf.Max(0, Health - 12);
-            hitCooldown = 1.7f;
+            Health = Mathf.Max(0, Health - damage);
+            hitCooldown = 1.4f;
             LastHitTime = Time.time;
             shake = 0.6f;
-            DemoGame.Instance.Caption("他扑了过来。拉开距离，或者按 F 推开；不需要杀死他。", 3);
+            Vector3 away = transform.position - from;
+            away.y = 0;
+            away = away.sqrMagnitude > 0.001f ? away.normalized : -model.forward;
+            thrown += away * 3.2f;
+            Body.Recoil(away, 0.55f);
             if (Health <= 0) DemoGame.Instance.Fail();
         }
     }
