@@ -32,6 +32,7 @@ namespace DontForgetMe
         private float nextGateSound;
         private float nextMoan;
         private bool surged;
+        private Transform keeper;
 
         public void Configure(DemoGame owner)
         {
@@ -148,7 +149,7 @@ namespace DontForgetMe
             foreach (Hostile hostile in hostiles)
             {
                 Transform grudge = hostile.Grudge;
-                int held = grudge != null ? prey.IndexOf(grudge) : -1;
+                int held = grudge != null && Wanted(grudge) ? prey.IndexOf(grudge) : -1;
                 if (held < 0) continue;
                 hostile.Target = grudge;
                 taken[held]++;
@@ -156,13 +157,14 @@ namespace DontForgetMe
             foreach (Hostile hostile in hostiles)
             {
                 if (hostile.State == Hostile.Mode.Pound) continue;
-                if (hostile.Grudge != null && prey.Contains(hostile.Grudge)) continue;
-                int best = 0;
+                if (hostile.Grudge != null && Wanted(hostile.Grudge) && prey.Contains(hostile.Grudge)) continue;
+                int best = prey.IndexOf(keeper != null ? keeper : game.Player.transform);
                 float bestScore = float.MaxValue;
                 for (int i = 0; i < prey.Count; i++)
                 {
+                    if (!Wanted(prey[i])) continue;
                     float score = Flat(prey[i].position - hostile.transform.position).magnitude + reluctance[i]
-                        + (taken[i] >= caps[i] ? 6f : 0f) - (hostile.Target == prey[i] ? 0.8f : 0f);
+                        + (keeper == null && taken[i] >= caps[i] ? 6f : 0f) - (hostile.Target == prey[i] ? 0.8f : 0f);
                     if (score >= bestScore) continue;
                     bestScore = score;
                     best = i;
@@ -172,9 +174,22 @@ namespace DontForgetMe
             }
         }
 
-        // The gate is open: whatever was holding them back is gone.
-        public void Surge()
+        // Once the gate is open they go for whoever is still on their side of it, or standing in
+        // the gateway. Nobody who has got clear is chased across the yard: a hostile loose in
+        // there could never be put back out through the press behind it, and the gate could
+        // never be shut.
+        private bool Wanted(Transform who)
         {
+            if (keeper == null) return true;
+            float z = who.position.z;
+            return z < 49.2f || who == keeper || (who == game.Player.transform && z < 51.5f);
+        }
+
+        // The gate is open: whatever was holding them back is gone. "doorkeeper" is whoever
+        // stands in the gateway while the others get through.
+        public void Surge(Transform doorkeeper)
+        {
+            keeper = doorkeeper;
             if (surged) return;
             surged = true;
             foreach (Hostile hostile in hostiles)

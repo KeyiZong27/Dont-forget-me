@@ -110,6 +110,11 @@ namespace DontForgetMe.Editor
             Set(asset, "m_AdditionalLightsPerObjectLimit", 8);
             Set(asset, "m_AdditionalLightShadowsSupported", true);
             Set(asset, "m_AdditionalLightsShadowmapResolution", 2048);
+            // Every local light uses the "high" tier, so this is the size of each shadow map: 16 fit
+            // in the atlas. A point light needs 6 and a spot 1. If the lights in view need more than
+            // that, URP shrinks all of them, differently from frame to frame as the camera turns,
+            // and shadows on the walls visibly jump. Keep shadow-casting local lights within 16 maps.
+            Set(asset, "m_AdditionalLightsShadowResolutionTierHigh", 512);
             Set(asset, "m_ReflectionProbeBlending", true);
             Set(asset, "m_ReflectionProbeBoxProjection", true);
             Set(asset, "m_ShadowDistance", 70f);

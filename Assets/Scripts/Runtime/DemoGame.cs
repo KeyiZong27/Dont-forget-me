@@ -111,6 +111,7 @@ namespace DontForgetMe
         private float gateShake;
         private bool closing;
         private bool noticed;
+        private readonly float[] lampFailedAt = { -1f, -1f };
         private float[] lampLevels;
         private Material[] lampGlow;
         private Material lampDead;
@@ -256,7 +257,8 @@ namespace DontForgetMe
             Gate.transform.position = gateAt + new Vector3(0, 0, Mathf.Sin(Time.time * 75f) * gateShake);
         }
 
-        // The lamps nearest the street give out as the alley fills, so they arrive as shapes against the daylight.
+        // The lamps nearest the street give out as the alley fills, so they arrive as shapes against
+        // the daylight. Each one stutters twice and stays down; nothing keeps flashing.
         private void UpdateLamps()
         {
             if (AlleyLamps.Count < 2) return;
@@ -273,10 +275,21 @@ namespace DontForgetMe
             }
             int crowd = Siege.Hostiles.Count;
             bool siege = State.Phase == OpeningPhase.Repair || State.Phase == OpeningPhase.Regroup || State.Phase == OpeningPhase.Complete;
-            float first = siege && crowd >= 3 ? (Mathf.PerlinNoise(Time.time * 9f, 0.3f) > 0.8f ? 0.6f : 0f) : 1f;
-            float second = siege && crowd >= 5 ? (Mathf.PerlinNoise(Time.time * 14f, 4.1f) > 0.42f ? 1f : 0.08f) : 1f;
-            SetLamp(0, first);
-            SetLamp(1, second);
+            if (siege && crowd >= 3 && lampFailedAt[0] < 0) lampFailedAt[0] = Time.time;
+            if (siege && crowd >= 5 && lampFailedAt[1] < 0) lampFailedAt[1] = Time.time;
+            SetLamp(0, Failing(lampFailedAt[0], 0f));
+            SetLamp(1, Failing(lampFailedAt[1], 0.3f));
+        }
+
+        private static float Failing(float since, float rest)
+        {
+            if (since < 0) return 1f;
+            float t = Time.time - since;
+            if (t < 0.15f) return 0.35f;
+            if (t < 0.45f) return 1f;
+            if (t < 0.6f) return 0.2f;
+            if (t < 0.9f) return 0.8f;
+            return Mathf.Lerp(0.8f, rest, (t - 0.9f) / 0.3f);
         }
 
         private void SetLamp(int index, float level)
@@ -732,7 +745,7 @@ namespace DontForgetMe
             if (ZhouTool != null) ZhouTool.SetActive(false);
             effects.PlayOneShot(clang, 0.5f);
             effects.PlayOneShot(scrape, 0.6f);
-            Siege.Surge();
+            Siege.Surge(ResidentB.transform);
             foreach (ActorMotor actor in new[] { Zhou, Woman, ResidentA })
             {
                 companions[actor].Assign(Companion.Duty.None, actor.transform.position, GateOpen);
@@ -768,7 +781,7 @@ namespace DontForgetMe
             Siege.Tick(1f);
             WatchTheCrowd();
             if (GateShut || closing || !Through(49.2f)) return;
-            if (!Siege.AnyBeyond(49.6f)) StartCoroutine(CloseGate());
+            if (!Siege.AnyBeyond(50.6f)) StartCoroutine(CloseGate());
             else if (Time.time >= nextNag)
             {
                 nextNag = Time.time + 4f;
@@ -776,14 +789,20 @@ namespace DontForgetMe
             }
         }
 
-        // The neighbour who held the doorway puts his weight on the end of the leaf and walks it
-        // shut; anyone standing in the gateway is driven back out by it.
+        // The neighbour who held the doorway heaves whoever is in it back out, then puts his weight
+        // on the end of the leaf and walks it shut; anyone still in the way is driven out by it.
         private IEnumerator CloseGate()
         {
             closing = true;
             Companion holder = companions[ResidentB];
             holder.Busy = true;
+            ResidentB.Stop();
+            ResidentB.Facing = ResidentB.transform.position + Vector3.back * 3f;
+            ResidentB.transform.rotation = Quaternion.LookRotation(Vector3.back);
+            ResidentB.Body.Shove();
+            yield return new WaitForSeconds(0.17f);
             Siege.ClearGateway(1.5f);
+            Thud(ResidentB.transform.position + Vector3.back, 0.9f);
             ResidentB.Hurry = true;
             ResidentB.GoTo(new Vector3(gateAt.x + 1.1f, 0, 48.95f));
             yield return Until(() => !ResidentB.HasDestination, 2.5f);
@@ -927,7 +946,7 @@ namespace DontForgetMe
                             if (piece.Heavy && !piece.Moved && !piece.Claimed) return piece.Root.transform.position - Vector3.up * 0.6f;
                         return Zhou.transform.position;
                     case OpeningPhase.Repair: return Zhou.transform.position;
-                    case OpeningPhase.Regroup: return GateShut ? Zhou.transform.position : new Vector3(0, 0, 50.5f);
+                    case OpeningPhase.Regroup: return GateShut ? Zhou.transform.position : new Vector3(0, 0, 53.5f);
                     default: return Zhou.transform.position;
                 }
             }

@@ -352,10 +352,12 @@ namespace DontForgetMe
                     for (int m = 1; m < 3; m++)
                         NoShadow(Kit.Box("Mullion", new Vector3(cx - w / 2 + w * m / 3f, open / 2, -0.15f), new Vector3(0.06f, open, 0.08f), metal, t));
                     NoShadow(Kit.Box("Transom", new Vector3(cx, open - 0.55f, -0.15f), new Vector3(w, 0.06f, 0.08f), metal, t));
+                    // Each poster sits at its own depth: two in the same plane that happen to overlap
+                    // would fight over every pixel and flicker.
                     for (int p = 0; p < 2; p++)
                     {
                         Color paper = p == 0 ? new Color(0.72f, 0.16f, 0.12f) : new Color(0.85f, 0.8f, 0.62f);
-                        NoShadow(Kit.Box("Poster", new Vector3(cx - w / 2 + 0.5f + (float)random.NextDouble() * (w - 1f), 1.25f + (float)random.NextDouble() * 0.5f, -0.185f),
+                        NoShadow(Kit.Box("Poster", new Vector3(cx - w / 2 + 0.5f + (float)random.NextDouble() * (w - 1f), 1.25f + (float)random.NextDouble() * 0.5f, -0.185f + p * 0.012f),
                             new Vector3(0.42f, 0.58f, 0.01f), Art.Plain(paper, 0.2f), t));
                     }
                     break;
@@ -503,7 +505,7 @@ namespace DontForgetMe
 
             Color tone = new Color(1f, 0.86f, 0.66f);
             NoShadow(Kit.Box("ShopTube", new Vector3(cx, open - 0.06f, -1.7f), new Vector3(w * 0.5f, 0.03f, 0.05f), Art.Glow(tone, 3.5f), t));
-            Kit.Lamp("ShopLight", new Vector3(cx, open - 0.5f, -1.5f), tone, 2.2f, 5.5f, t, true);
+            Kit.Lamp("ShopLight", new Vector3(cx, open - 0.5f, -1.5f), tone, 2.2f, 5.5f, t);
 
             // The shutter hangs from its top edge, so scaling the holder rolls it down.
             shopShutter = Group("ShopShutter", new Vector3(cx, open, -0.27f), 0, t);
@@ -888,9 +890,11 @@ namespace DontForgetMe
         private static void BuildAlley(DemoGame game)
         {
             Material brick = S("red_brick_03"), rough = S("rough_plaster_brick_02");
-            // The alley walls start just behind the street fronts, so the two never share a plane.
-            Facade("AlleyWestWall", new Vector3(-3f, 0, 54), 90, 25.7f, brick, 2, "WDWWDWWW", null, 101, 6f, 3.2f, true, null, false);
-            Facade("AlleyEastWall", new Vector3(3f, 0, 28.3f), -90, 25.7f, rough, 2, "WWDWWWDW", null, 202, 6f, 3.2f, false, null, false);
+            // The alley walls start just behind the street fronts and stand 2 cm proud of the corner
+            // buildings' side walls. Left in the same plane, the two fight over every pixel along
+            // the first nine metres of the alley and the wall flickers between brick and plaster.
+            Facade("AlleyWestWall", new Vector3(-2.98f, 0, 54), 90, 25.7f, brick, 2, "WDWWDWWW", null, 101, 6f, 3.2f, true, null, false);
+            Facade("AlleyEastWall", new Vector3(2.98f, 0, 28.3f), -90, 25.7f, rough, 2, "WWDWWWDW", null, 202, 6f, 3.2f, false, null, false);
 
             // Gutter along the east wall and the run of pipes above it.
             Kit.Box("Gutter", new Vector3(2.72f, 0.003f, 41f), new Vector3(0.34f, 0.01f, 25.6f), Art.Plain(new Color(0.06f, 0.065f, 0.07f), 0.85f), root);
@@ -922,7 +926,9 @@ namespace DontForgetMe
                 GameObject bulb = Kit.Lathe("LampBulb", at - Vector3.up * 0.02f, new[] { new Vector2(0, 0), new Vector2(0.04f, 0.03f), new Vector2(0.03f, 0.09f), new Vector2(0, 0.1f) },
                     Art.Glow(new Color(1f, 0.72f, 0.4f), 7f), root, 10);
                 NoShadow(bulb);
-                Light lamp = Kit.Lamp("AlleyLamp", at - Vector3.up * 0.15f, new Color(1f, 0.70f, 0.40f), i == 2 ? 5.5f : 4f, 7.5f, root, i == 0 || i == 2);
+                // Only the lamp over the pile casts shadows: with the repair shop's tube and the gate
+                // spot that is 13 shadow maps, inside the 16 the atlas holds (see DemoSetup).
+                Light lamp = Kit.Lamp("AlleyLamp", at - Vector3.up * 0.15f, new Color(1f, 0.70f, 0.40f), i == 2 ? 5.5f : 4f, 7.5f, root, i == 2);
                 game.AlleyLamps.Add(lamp);
                 game.AlleyBulbs.Add(bulb.GetComponent<Renderer>());
             }

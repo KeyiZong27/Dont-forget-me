@@ -24,6 +24,8 @@ namespace DontForgetMe
         private bool sprint;
         private float frames, slowest, elapsed;
         private int shot;
+        private static bool shadowsSqueezed;
+        private bool steadinessSkipped;
 
         private void Start()
         {
@@ -38,6 +40,7 @@ namespace DontForgetMe
             folder = at >= 0 && at + 1 < args.Length ? args[at + 1] : Environment.GetEnvironmentVariable("DFM_SHOTS");
             if (string.IsNullOrEmpty(folder)) folder = Path.Combine(Application.persistentDataPath, "Autopilot");
             Directory.CreateDirectory(folder);
+            Application.logMessageReceived += Heard;
             player.ScriptedMove = Steer;
             if (restarted)
             {
@@ -46,8 +49,23 @@ namespace DontForgetMe
             }
             Finished = false;
             Problems = 0;
+            shadowsSqueezed = false;
             log.Clear();
             StartCoroutine(Run());
+        }
+
+        // The pipeline says so when the local lights in view need more shadow maps than the atlas
+        // holds. It then rescales them from frame to frame, which shows as shadows jumping on walls.
+        private void Heard(string message, string stack, LogType type)
+        {
+            if (shadowsSqueezed || !message.StartsWith("Reduced additional punctual light shadows")) return;
+            shadowsSqueezed = true;
+            Problem("too many shadow-casting local lights in view: " + message);
+        }
+
+        private void OnDestroy()
+        {
+            Application.logMessageReceived -= Heard;
         }
 
         private Vector3 Steer()
@@ -127,18 +145,7 @@ namespace DontForgetMe
             string path = Path.Combine(folder, (shot++).ToString("00") + "_" + name + ".png");
             if (Application.isBatchMode)
             {
-                Camera view = game.View;
-                RenderTexture target = RenderTexture.GetTemporary(1600, 1000, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
-                RenderTexture before = view.targetTexture;
-                view.targetTexture = target;
-                for (int i = 0; i < 6; i++) view.Render();
-                RenderTexture.active = target;
-                Texture2D image = new Texture2D(target.width, target.height, TextureFormat.RGB24, false);
-                image.ReadPixels(new Rect(0, 0, target.width, target.height), 0, 0);
-                image.Apply();
-                view.targetTexture = before;
-                RenderTexture.active = null;
-                RenderTexture.ReleaseTemporary(target);
+                Texture2D image = Offscreen();
                 File.WriteAllBytes(path, image.EncodeToPNG());
                 Destroy(image);
             }
@@ -149,6 +156,110 @@ namespace DontForgetMe
                 yield return null;
             }
             Note("shot " + Path.GetFileName(path));
+        }
+
+        private Texture2D Offscreen()
+        {
+            Camera view = game.View;
+            RenderTexture target = RenderTexture.GetTemporary(1600, 1000, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            RenderTexture before = view.targetTexture;
+            view.targetTexture = target;
+            for (int i = 0; i < 6; i++) view.Render();
+            RenderTexture.active = target;
+            Texture2D image = new Texture2D(target.width, target.height, TextureFormat.RGB24, false);
+            image.ReadPixels(new Rect(0, 0, target.width, target.height), 0, 0);
+            image.Apply();
+            view.targetTexture = before;
+            RenderTexture.active = null;
+            RenderTexture.ReleaseTemporary(target);
+            return image;
+        }
+
+        // Holds the camera still and compares consecutive frames in coarse blocks. Film grain and
+        // sub-pixel jitter average out inside a block; a shadow that jumps or two surfaces fighting
+        // for the same depth do not. People and the interface are hidden for the half second it
+        // takes, so that only the scenery is compared. The block that changed most is reported
+        // with its position, bottom-left being 0% 0%.
+        private IEnumerator Steady(string name, float yaw, float pitch)
+        {
+            const int cols = 32, rows = 20, frames = 8;
+            // Moving shadows of the people who are hidden reach about 5%; surfaces fighting over the
+            // same depth measured 20% and more.
+            const float limit = 0.1f;
+            // Without a display the pictures are rendered offscreen, and that path is not steady
+            // from frame to frame by itself (successive renders differ in how blurred they are),
+            // so a comparison there says nothing about what a player sees.
+            if (Application.isBatchMode)
+            {
+                if (!steadinessSkipped) Note("steadiness checks skipped: they need a real display");
+                steadinessSkipped = true;
+                yield break;
+            }
+            player.Yaw = yaw;
+            player.Pitch = pitch;
+            Camera view = game.View;
+            Vector3 at = view.transform.position;
+            int still = 0;
+            for (float until = Time.time + 5f; still < 12 && Time.time < until;)
+            {
+                yield return null;
+                still = (view.transform.position - at).sqrMagnitude < 1e-7f ? still + 1 : 0;
+                at = view.transform.position;
+            }
+            DemoHud hud = game.GetComponent<DemoHud>();
+            int mask = view.cullingMask;
+            view.cullingMask = mask & ~(1 << 8);
+            hud.enabled = false;
+            // Long enough for temporal anti-aliasing to forget the people it was just drawing.
+            for (int i = 0; i < 20; i++) yield return null;
+            float[] low = new float[cols * rows], high = new float[cols * rows];
+            byte[] first = null, last = null;
+            for (int f = 0; f < frames; f++)
+            {
+                yield return new WaitForEndOfFrame();
+                Texture2D image = ScreenCapture.CaptureScreenshotAsTexture();
+                Color32[] pixels = image.GetPixels32();
+                int width = image.width, height = image.height;
+                if (f == 0) first = image.EncodeToPNG();
+                if (f == frames - 1) last = image.EncodeToPNG();
+                Destroy(image);
+                for (int b = 0; b < low.Length; b++)
+                {
+                    int x0 = b % cols * width / cols, x1 = (b % cols + 1) * width / cols;
+                    int y0 = b / cols * height / rows, y1 = (b / cols + 1) * height / rows;
+                    long sum = 0;
+                    for (int y = y0; y < y1; y++)
+                        for (int x = x0; x < x1; x++)
+                        {
+                            Color32 c = pixels[y * width + x];
+                            sum += c.r * 2 + c.g * 5 + c.b;
+                        }
+                    float mean = sum / (8f * 255f * (x1 - x0) * (y1 - y0));
+                    low[b] = f == 0 ? mean : Mathf.Min(low[b], mean);
+                    high[b] = f == 0 ? mean : Mathf.Max(high[b], mean);
+                }
+            }
+            view.cullingMask = mask;
+            hud.enabled = true;
+            int worst = 0, unsteady = 0;
+            for (int b = 0; b < low.Length; b++)
+            {
+                if (high[b] - low[b] > high[worst] - low[worst]) worst = b;
+                if (high[b] - low[b] > 0.02f) unsteady++;
+            }
+            float moved = high[worst] - low[worst];
+            string result = string.Format("steadiness {0}: over {1} frames the most changed block moved {2:P1} of full brightness (at {3}% {4}%), {5} of {6} blocks moved more than 2%",
+                name, frames, moved, (worst % cols * 100 + 50) / cols, (worst / cols * 100 + 50) / rows, unsteady, low.Length);
+            if (moved <= limit)
+            {
+                Note(result);
+                yield break;
+            }
+            // Keep the first and last frame, so whatever is flickering can be looked at.
+            string stem = Path.Combine(folder, "unsteady_" + name.Replace(", ", "_").Replace(' ', '_'));
+            File.WriteAllBytes(stem + "_first.png", first);
+            File.WriteAllBytes(stem + "_last.png", last);
+            Problem("the scenery flickers. " + result);
         }
 
         private IEnumerator Take(Piece piece)
@@ -174,6 +285,7 @@ namespace DontForgetMe
             yield return Shot("street_start", 0, 10);
             yield return Shot("street_back", 150, 6);
             yield return Shot("street_west", -62, 4);
+            yield return Steady("street, west shop fronts", -62, 4);
 
             yield return Walk(new Vector3(1.2f, 0, 5.2f), 0.3f, 12);
             yield return Use("给狗倒水", 4, () => game.State.GaveWater);
@@ -184,6 +296,7 @@ namespace DontForgetMe
             yield return Shot("workshop_wide", -48, 8);
             yield return Walk(new Vector3(-6.4f, 0, 10.9f), 0.4f, 10);
             yield return Shot("general_store", -90, 8);
+            yield return Steady("general store and repair shop", -90, 8);
             yield return Walk(new Vector3(-5.9f, 0, 13.2f), 0.3f, 10);
             yield return Shot("workshop_close", -35, 12);
             yield return Shot("zhou", -100, 6);
@@ -203,11 +316,15 @@ namespace DontForgetMe
 
             yield return Walk(new Vector3(0.6f, 0, 25.5f), 0.4f, 15);
             yield return Shot("alley_mouth", 0, 2);
+            yield return Steady("alley mouth from the street", 0, 2);
             yield return Walk(new Vector3(0, 0, 31.5f), 0.4f, 15);
             if (game.State.Phase != OpeningPhase.Debris) Problem("entering the alley did not start the debris phase");
             yield return Shot("alley_in", 0, 4);
             yield return Walk(new Vector3(0, 0, 38.5f), 0.4f, 15);
             yield return Shot("alley_mid", 0, 0);
+            // Looking back toward the street: the pile behind is being carried about and would count as movement.
+            yield return Steady("alley, west wall", -110, 2);
+            yield return Steady("alley, east wall", 110, 2);
             yield return Walk(new Vector3(0.2f, 0, 42.4f), 0.3f, 12);
             yield return Shot("gate_and_pile", 2, 8);
 
@@ -335,20 +452,25 @@ namespace DontForgetMe
             yield return Shot("holding_the_door", 180, 8, 2);
             yield return Walk(new Vector3(0.4f, 0, 53.2f), 0.5f, 10, true);
 
-            // Anyone who followed them in has to be put back outside before the gate will close.
+            // Stand clear of the gateway, as the objective says. Only someone who has got well into
+            // the yard keeps the gate open, and has to be shoved back toward it.
             patience = Time.time + 60f;
             bool closingShot = false;
+            Vector3 clear = new Vector3(0.4f, 0, 53.2f);
             while (!game.GateShut && Time.time < patience && !game.IsFailed)
             {
                 player.Yaw = Mathf.LerpAngle(player.Yaw, 180, 0.08f);
-                Hostile intruder = game.Siege.Nearest(player.transform.position, 12f, false);
-                if (intruder != null && intruder.transform.position.z > 49.3f)
+                Hostile intruder = null;
+                foreach (Hostile hostile in game.Siege.Hostiles)
+                    if (hostile.transform.position.z > 50.6f
+                        && (intruder == null || hostile.transform.position.z > intruder.transform.position.z)) intruder = hostile;
+                if (intruder != null)
                 {
                     Vector3 to = Flat(intruder.transform.position - player.transform.position);
-                    waypoint = to.magnitude > 1.25f ? intruder.transform.position + Vector3.forward : (Vector3?)null;
+                    waypoint = to.magnitude > 1.25f || to.z > 0 ? intruder.transform.position + Vector3.forward : (Vector3?)null;
                     if (to.magnitude < 1.45f && to.z < 0) player.TryPush();
                 }
-                else waypoint = null;
+                else waypoint = Flat(clear - player.transform.position).magnitude > 0.5f ? clear : (Vector3?)null;
                 if (!closingShot && Mathf.Abs(game.Gate.transform.position.x) < 1.6f && Mathf.Abs(game.Gate.transform.position.x) > 0.3f)
                 {
                     closingShot = true;
@@ -358,6 +480,8 @@ namespace DontForgetMe
             }
             waypoint = null;
             if (!game.GateShut) Problem("the gate never shut: " + Where());
+            foreach (Hostile hostile in game.Siege.Hostiles)
+                if (game.GateShut && hostile.transform.position.z > 48.6f) Problem(hostile.name + " was shut in on our side of the gate");
             yield return new WaitForSeconds(2.5f);
             yield return Shot("gate_shut", 180, 6);
             yield return Walk(game.Zhou.transform.position + new Vector3(0.9f, 0, -1.1f), 0.6f, 15);
@@ -367,6 +491,8 @@ namespace DontForgetMe
             yield return new WaitForSeconds(1.5f);
             yield return Shot("courtyard", 0, 8);
             yield return Shot("courtyard_back", 178, 4);
+            yield return Steady("courtyard, east wall", 90, 4);
+            yield return Steady("courtyard, west wall", -90, 4);
             yield return Use("确认大家", 10, () => game.State.Phase == OpeningPhase.Complete);
             yield return new WaitForSeconds(3f);
             yield return Shot("together", 15, 10);
